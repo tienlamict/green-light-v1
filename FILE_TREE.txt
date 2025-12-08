@@ -1,0 +1,255 @@
+GREEN-LIGHT-V1 PROJECT STRUCTURE
+================================
+
+green-light-v1/
+│
+├── 📁 app/                          [Next.js App Router]
+│   ├── layout.jsx                   Root layout with metadata & fonts
+│   ├── page.jsx                     Main products showcase page
+│   └── globals.css                  Tailwind directives + custom styles
+│
+├── 📁 components/                   [Reusable React Components]
+│   ├── Header.jsx                   Navigation bar (logo, menu, icons)
+│   ├── Hero.jsx                     Hero banner with category icons
+│   ├── SidebarFilters.jsx           Desktop filter sidebar
+│   ├── MobileFilterDrawer.jsx       Mobile slide-in filter drawer
+│   ├── ProductCard.jsx              Individual product card
+│   ├── ProductGrid.jsx              Product grid + sorting + pagination
+│   └── LoadingSkeleton.jsx          Loading placeholder component
+│
+├── 📁 data/                         [Data Layer]
+│   └── products.js                  16 dummy product objects
+│
+├── 📁 public/                       [Static Assets]
+│   └── .gitkeep                     Placeholder for images/assets
+│
+├── 📄 package.json                  Dependencies & scripts
+├── 📄 next.config.js                Next.js configuration
+├── 📄 tailwind.config.js            Tailwind CSS configuration
+├── 📄 postcss.config.js             PostCSS configuration
+├── 📄 jsconfig.json                 Path aliases (@/ imports)
+├── 📄 .eslintrc.json                ESLint rules
+├── 📄 .gitignore                    Git ignore patterns
+│
+├── 📖 README.md                     Project overview & quick start
+├── 📖 SETUP_GUIDE.md                Detailed setup instructions
+├── 📖 PROJECT_OVERVIEW.md           Complete feature documentation
+└── 📖 FILE_TREE.txt                 This file
+
+---
+
+COMPONENT BREAKDOWN
+===================
+
+Header.jsx (Navigation)
+├── Logo (left)
+├── Menu Items (center): HOME, SHOPS, PRODUCTS, BLOG, PAGES
+└── Icons (right): Search, User, Cart (with badge)
+
+Hero.jsx (Banner)
+├── Title: "Nature-Inspired"
+├── Breadcrumb: Home > Nature-Inspired
+└── 6 Category Icons (circular badges with hover effects)
+
+SidebarFilters.jsx (Desktop Filters)
+├── Categories (10 items)
+├── Price Range Slider ($0-$80)
+├── Color Filter (3 circles)
+├── Tags (6 chips)
+└── Brand (4 options)
+
+MobileFilterDrawer.jsx
+├── Backdrop overlay
+├── Slide-in drawer
+└── Contains SidebarFilters
+
+ProductCard.jsx
+├── Discount Badge (top right, red)
+├── Favorite Button (hover)
+├── Product Image (zoom on hover)
+├── Product Name
+├── Price + Original Price (strikethrough)
+└── Add to Cart Button
+
+ProductGrid.jsx
+├── Toolbar
+│   ├── View Toggle (Grid/List)
+│   └── Sort Dropdown
+├── Product Grid (1-4 columns responsive)
+└── Pagination (Previous, 1, 2, 3, Next)
+
+---
+
+KEY FILES EXPLAINED
+===================
+
+📄 app/layout.jsx
+   - Root layout for entire app
+   - Sets up Inter font from Google Fonts
+   - Defines metadata (title, description)
+   - Wraps all pages
+
+📄 app/page.jsx
+   - Main products page
+   - Combines Header, Hero, Filters, Grid
+   - Manages filter state
+   - Mobile filter drawer logic
+
+📄 app/globals.css
+   - Tailwind @tailwind directives
+   - Custom utility classes (.container-custom, .btn-primary)
+   - Custom scrollbar styles
+   - Global resets
+
+📄 components/Header.jsx
+   - Sticky header with shadow
+   - Active menu state tracking
+   - Mobile responsive menu
+   - Cart badge counter
+
+📄 components/Hero.jsx
+   - Grey gradient background
+   - 6 category icons with Lucide React icons
+   - Responsive grid (3 cols mobile, 6 cols desktop)
+   - Hover scale animations
+
+📄 components/SidebarFilters.jsx
+   - Collapsible sections with chevron icons
+   - Interactive price slider
+   - Color circle toggles
+   - Tag chip toggles
+   - Smooth transitions
+
+📄 components/MobileFilterDrawer.jsx
+   - Fixed position drawer
+   - Backdrop with click-to-close
+   - Slide-in animation
+   - Only visible on mobile/tablet
+
+📄 components/ProductCard.jsx
+   - Next.js Image optimization
+   - Hover state management
+   - Favorite toggle functionality
+   - Discount percentage calculation
+   - Add to cart button with hover effect
+
+📄 components/ProductGrid.jsx
+   - Sorting logic (featured, price, name)
+   - Grid/List view toggle
+   - Responsive columns (1-4)
+   - Pagination UI
+
+📄 data/products.js
+   - 16 product objects
+   - Properties: id, name, price, originalPrice, image, category, discount
+   - Uses placeholder images (placehold.co)
+   - Easy to extend with more products
+
+---
+
+RESPONSIVE BREAKPOINTS
+======================
+
+Mobile: < 768px
+├── 1 column grid
+├── Mobile filter button
+├── Stacked navigation
+└── Hidden sidebar
+
+Tablet: 768px - 1024px
+├── 2-3 column grid
+├── Mobile filter button
+└── Hidden sidebar
+
+Desktop: > 1024px
+├── 4 column grid
+├── Visible sidebar
+└── Full navigation
+
+---
+
+TAILWIND UTILITIES USED
+========================
+
+Layout:
+- container-custom (max-w-7xl mx-auto px-4)
+- Grid layouts (grid, grid-cols-*)
+- Flexbox (flex, items-center, justify-between)
+
+Spacing:
+- Padding (p-*, px-*, py-*)
+- Margin (m-*, mx-*, my-*)
+- Gap (gap-*, space-x-*, space-y-*)
+
+Colors:
+- bg-* (backgrounds)
+- text-* (text colors)
+- border-* (borders)
+
+Effects:
+- hover:* (hover states)
+- transition-* (smooth transitions)
+- shadow-* (box shadows)
+- rounded-* (border radius)
+
+Responsive:
+- sm:* (640px+)
+- md:* (768px+)
+- lg:* (1024px+)
+- xl:* (1280px+)
+
+---
+
+ICONS USED (Lucide React)
+==========================
+
+Header:
+- Search
+- User
+- ShoppingCart
+
+Hero:
+- Lightbulb
+- Lamp
+- Sparkles
+- Sun
+- Zap
+- Star
+
+Filters:
+- ChevronDown
+- ChevronUp
+- SlidersHorizontal
+
+Product Card:
+- Heart
+
+Product Grid:
+- LayoutGrid
+- List
+
+Mobile Drawer:
+- X (close)
+
+---
+
+TOTAL FILES: 21
+===============
+
+Configuration: 7 files
+App Files: 3 files
+Components: 7 files
+Data: 1 file
+Documentation: 4 files
+
+---
+
+READY TO USE!
+=============
+
+1. npm install
+2. npm run dev
+3. Open http://localhost:3000
+
+Enjoy your new product showcase page! 🎉
+

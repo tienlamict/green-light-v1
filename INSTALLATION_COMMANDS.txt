@@ -1,0 +1,109 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                    INSTALLATION COMMANDS                         ║
+║              Green Light V1 - Product Showcase                   ║
+╚══════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────┐
+│ STEP 1: Install Dependencies                                     │
+└──────────────────────────────────────────────────────────────────┘
+
+npm install
+
+OR
+
+yarn install
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ STEP 2: Start Development Server                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+npm run dev
+
+OR
+
+yarn dev
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ STEP 3: Open in Browser                                          │
+└──────────────────────────────────────────────────────────────────┘
+
+http://localhost:3000
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║                    THAT'S IT! YOU'RE DONE! 🎉                    ║
+╚══════════════════════════════════════════════════════════════════╝
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ OTHER USEFUL COMMANDS                                             │
+└──────────────────────────────────────────────────────────────────┘
+
+Build for Production:
+  npm run build
+
+Start Production Server:
+  npm start
+
+Run Linter:
+  npm run lint
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ WHAT YOU'LL SEE                                                   │
+└──────────────────────────────────────────────────────────────────┘
+
+✓ Header with logo, menu, and icons
+✓ Grey hero banner with "Nature-Inspired" title
+✓ 6 category icons in circles
+✓ Left sidebar with filters (desktop)
+✓ Product grid with 16 products
+✓ Discount badges on products
+✓ Sorting and pagination
+✓ Mobile responsive design
+✓ Smooth animations
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ TROUBLESHOOTING                                                   │
+└──────────────────────────────────────────────────────────────────┘
+
+Port 3000 already in use?
+  npm run dev -- -p 3001
+
+Module not found errors?
+  rm -rf node_modules package-lock.json
+  npm install
+
+Styles not loading?
+  Clear browser cache and restart dev server
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ NEXT STEPS                                                        │
+└──────────────────────────────────────────────────────────────────┘
+
+1. Replace placeholder images with real product images
+2. Update product data in data/products.js
+3. Customize colors in tailwind.config.js
+4. Add your logo in components/Header.jsx
+5. Connect to your backend API
+
+
+┌──────────────────────────────────────────────────────────────────┐
+│ DOCUMENTATION FILES                                               │
+└──────────────────────────────────────────────────────────────────┘
+
+📖 QUICK_START.md         - Quick reference (start here!)
+📖 README.md              - Project overview
+📖 SETUP_GUIDE.md         - Detailed setup instructions
+📖 PROJECT_OVERVIEW.md    - Complete feature documentation
+📖 FILE_TREE.txt          - File structure reference
+
+
+╔══════════════════════════════════════════════════════════════════╗
+║                    ENJOY YOUR NEW SITE! 🚀                       ║
+╚══════════════════════════════════════════════════════════════════╝
+
