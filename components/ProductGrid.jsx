@@ -32,6 +32,9 @@ const ProductGrid = ({ products }) => {
   }
 
   const sortedProducts = getSortedProducts()
+  // Giới hạn hiển thị 3 hàng sản phẩm (tối đa 12 sản phẩm cho 4 cột)
+  const maxProducts = 12
+  const displayedProducts = sortedProducts.slice(0, maxProducts)
 
   return (
     <div className="space-y-6">
@@ -103,7 +106,7 @@ const ProductGrid = ({ products }) => {
             : 'grid-cols-1'
         }`}
       >
-        {sortedProducts.map((product) => (
+        {displayedProducts.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
