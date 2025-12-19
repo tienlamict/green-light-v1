@@ -1,15 +1,17 @@
 // Main page - Product showcase with filters and grid
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Hero from '@/components/Hero'
 import SidebarFilters from '@/components/SidebarFilters'
 import ProductGrid from '@/components/ProductGrid'
 import MobileFilterDrawer from '@/components/MobileFilterDrawer'
 import { products } from '@/data/products'
+import { fetchCategories } from '@/services/api'
 
 export default function HomePage() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
+  const [categories, setCategories] = useState([])
   const [filters, setFilters] = useState({
     categories: [],
     priceRange: [0, 80],
@@ -17,6 +19,15 @@ export default function HomePage() {
     tags: [],
     brands: [],
   })
+
+  // Fetch categories from API on component mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      const categoriesData = await fetchCategories()
+      setCategories(categoriesData)
+    }
+    loadCategories()
+  }, [])
 
   return (
     <>
@@ -26,7 +37,11 @@ export default function HomePage() {
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Desktop Sidebar */}
           <aside className="hidden lg:block w-64 flex-shrink-0">
-            <SidebarFilters filters={filters} setFilters={setFilters} />
+            <SidebarFilters 
+              categories={categories}
+              filters={filters} 
+              setFilters={setFilters} 
+            />
           </aside>
 
           {/* Main Content */}
@@ -48,6 +63,7 @@ export default function HomePage() {
       <MobileFilterDrawer
         isOpen={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
+        categories={categories}
         filters={filters}
         setFilters={setFilters}
       />

@@ -3,7 +3,7 @@
 import { ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
-const SidebarFilters = ({ onFilterChange }) => {
+const SidebarFilters = ({ categories = [], onFilterChange }) => {
   const [priceRange, setPriceRange] = useState([0, 2000000])
   const [selectedCategory, setSelectedCategory] = useState(null)
   const [selectedColors, setSelectedColors] = useState([])
@@ -13,19 +13,6 @@ const SidebarFilters = ({ onFilterChange }) => {
     color: true,
     brand: true,
   })
-
-  const categories = [
-    'Radiant Arc',
-    'Optic Glow',
-    'Aura Glow',
-    'Stellar Light',
-    'Spectrum',
-    'Jade Light',
-    'Ignite Form',
-    'Kinetic Beam',
-    'Lume Arc',
-    'Mystic Glow',
-  ]
 
   const colors = [
     { name: 'Đen', value: '#000000' },
@@ -43,7 +30,11 @@ const SidebarFilters = ({ onFilterChange }) => {
   }
 
   const handleCategoryClick = (category) => {
-    setSelectedCategory(selectedCategory === category ? null : category)
+    const newCategory = selectedCategory === category.category_id ? null : category.category_id
+    setSelectedCategory(newCategory)
+    if (onFilterChange) {
+      onFilterChange({ category: newCategory })
+    }
   }
 
   const handleColorToggle = (colorValue) => {
@@ -83,25 +74,31 @@ const SidebarFilters = ({ onFilterChange }) => {
           }`}
         >
           <ul className="space-y-2 pt-2">
-            {categories.map((category, index) => (
-              <li key={index}>
-                <button
-                  onClick={() => handleCategoryClick(category)}
-                  className={`text-sm w-full text-left flex items-center space-x-2 py-1 px-2 rounded transition-all duration-200 ${
-                    selectedCategory === category
-                      ? 'text-black font-semibold bg-gray-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                  }`}
-                >
-                  {selectedCategory === category && (
-                    <ChevronRight className="w-3 h-3 flex-shrink-0" />
-                  )}
-                  <span className={selectedCategory === category ? 'ml-0' : 'ml-5'}>
-                    {category}
-                  </span>
-                </button>
+            {categories.length > 0 ? (
+              categories.map((category) => (
+                <li key={category.category_id}>
+                  <button
+                    onClick={() => handleCategoryClick(category)}
+                    className={`text-sm w-full text-left flex items-center space-x-2 py-1 px-2 rounded transition-all duration-200 ${
+                      selectedCategory === category.category_id
+                        ? 'text-black font-semibold bg-gray-50'
+                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                    }`}
+                  >
+                    {selectedCategory === category.category_id && (
+                      <ChevronRight className="w-3 h-3 flex-shrink-0" />
+                    )}
+                    <span className={selectedCategory === category.category_id ? 'ml-0' : 'ml-5'}>
+                      {category.name}
+                    </span>
+                  </button>
+                </li>
+              ))
+            ) : (
+              <li className="text-sm text-gray-500 py-2 px-2">
+                Đang tải danh mục...
               </li>
-            ))}
+            )}
           </ul>
         </div>
       </div>
