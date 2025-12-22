@@ -9,8 +9,14 @@ const ProductCard = ({ product }) => {
   const [isHovered, setIsHovered] = useState(false)
   const [isFavorite, setIsFavorite] = useState(false)
 
-  const discountPercentage = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+  // Support both id and product_id from API
+  const productId = product.id || product.product_id
+  const productPrice = product.price || product.price_min || 0
+  const productImage = product.image || product.image_url || product.thumbnail || '/placeholder-image.jpg'
+  const productName = product.name || product.product_name || 'Unnamed Product'
+
+  const discountPercentage = product.originalPrice || product.price_max
+    ? Math.round(((product.originalPrice || product.price_max) - productPrice) / (product.originalPrice || product.price_max) * 100)
     : 0
 
   return (
@@ -44,11 +50,11 @@ const ProductCard = ({ product }) => {
       </button>
 
       {/* Product Image - clickable to detail page */}
-      <Link href={`/products/${product.id}`}>
+      <Link href={`/products/${productId}`}>
         <div className="relative h-64 bg-gray-100 overflow-hidden rounded-t-lg cursor-pointer">
           <Image
-            src={product.image}
-            alt={product.name}
+            src={productImage}
+            alt={productName}
             fill
             className="object-contain p-4 group-hover:scale-110 transition-transform duration-500"
           />
@@ -57,18 +63,18 @@ const ProductCard = ({ product }) => {
 
       {/* Product Info */}
       <div className="p-4">
-        <Link href={`/products/${product.id}`}>
+        <Link href={`/products/${productId}`}>
           <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700 transition-colors cursor-pointer">
-            {product.name}
+            {productName}
           </h3>
         </Link>
 
         {/* Price */}
         <div className="flex items-center space-x-2 mb-3">
-          <span className="text-lg font-bold text-red-500">{product.price.toLocaleString('vi-VN')}đ</span>
-          {product.originalPrice && (
+          <span className="text-lg font-bold text-red-500">{productPrice.toLocaleString('vi-VN')}đ</span>
+          {(product.originalPrice || product.price_max) && (
             <span className="text-sm text-gray-400 line-through">
-              {product.originalPrice.toLocaleString('vi-VN')}đ
+              {(product.originalPrice || product.price_max).toLocaleString('vi-VN')}đ
             </span>
           )}
         </div>

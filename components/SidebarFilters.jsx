@@ -1,11 +1,14 @@
 'use client'
 
 import { ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
-const SidebarFilters = ({ categories = [], onFilterChange }) => {
-  const [priceRange, setPriceRange] = useState([0, 2000000])
-  const [selectedCategory, setSelectedCategory] = useState(null)
+const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
+  const [priceRange, setPriceRange] = useState([
+    filters.min_price || 0,
+    filters.max_price || 2000000
+  ])
+  const [selectedCategory, setSelectedCategory] = useState(filters.category || null)
   const [selectedColors, setSelectedColors] = useState([])
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
@@ -13,6 +16,19 @@ const SidebarFilters = ({ categories = [], onFilterChange }) => {
     color: true,
     brand: true,
   })
+
+  // Sync local state with filters prop
+  useEffect(() => {
+    if (filters.category !== undefined) {
+      setSelectedCategory(filters.category)
+    }
+    if (filters.min_price !== undefined || filters.max_price !== undefined) {
+      setPriceRange([
+        filters.min_price || 0,
+        filters.max_price || 2000000
+      ])
+    }
+  }, [filters.category, filters.min_price, filters.max_price])
 
   const colors = [
     { name: 'Đen', value: '#000000' },
@@ -33,7 +49,24 @@ const SidebarFilters = ({ categories = [], onFilterChange }) => {
     const newCategory = selectedCategory === category.category_id ? null : category.category_id
     setSelectedCategory(newCategory)
     if (onFilterChange) {
-      onFilterChange({ category: newCategory })
+      const updateFilters = { category: newCategory }
+      // Remove category from filters if deselected
+      if (!newCategory) {
+        updateFilters.category = null
+      }
+      onFilterChange(updateFilters)
+    }
+  }
+
+  const handlePriceRangeChange = (newMaxPrice) => {
+    const newRange = [priceRange[0], newMaxPrice]
+    setPriceRange(newRange)
+    // Update API filters with price range
+    if (onFilterChange) {
+      onFilterChange({
+        min_price: newRange[0],
+        max_price: newRange[1],
+      })
     }
   }
 
@@ -135,7 +168,7 @@ const SidebarFilters = ({ categories = [], onFilterChange }) => {
               max="2000000"
               step="10000"
               value={priceRange[1]}
-              onChange={(e) => setPriceRange([0, parseInt(e.target.value)])}
+              onChange={(e) => handlePriceRangeChange(parseInt(e.target.value))}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900 transition-all duration-200"
             />
             <div className="flex items-center justify-between text-sm">

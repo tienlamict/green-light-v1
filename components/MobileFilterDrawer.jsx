@@ -3,8 +3,16 @@
 import { X } from 'lucide-react'
 import SidebarFilters from './SidebarFilters'
 
-const MobileFilterDrawer = ({ isOpen, onClose, categories = [], onFilterChange }) => {
+const MobileFilterDrawer = ({ isOpen, onClose, categories = [], filters = {}, onFilterChange }) => {
   if (!isOpen) return null
+
+  const handleFilterChange = (newFilters) => {
+    if (onFilterChange) {
+      onFilterChange(newFilters)
+    }
+    // Optionally close drawer after applying filters on mobile
+    // onClose()
+  }
 
   return (
     <>
@@ -28,7 +36,8 @@ const MobileFilterDrawer = ({ isOpen, onClose, categories = [], onFilterChange }
         <div className="p-4">
           <SidebarFilters 
             categories={categories}
-            onFilterChange={onFilterChange} 
+            filters={filters}
+            onFilterChange={handleFilterChange} 
           />
         </div>
       </div>

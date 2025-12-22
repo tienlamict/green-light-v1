@@ -36,23 +36,41 @@ export async function fetchCategories() {
 /**
  * Fetch products with optional filters
  * @param {Object} filters - Filter options
- * @returns {Promise<Array>} Array of product objects
+ * @param {string} filters.category - Category UUID
+ * @param {number} filters.min_price - Minimum price
+ * @param {number} filters.max_price - Maximum price
+ * @param {boolean} filters.is_active - Active status (default: true)
+ * @param {string} filters.sort - Sort order (e.g., "price_min ASC")
+ * @param {number} filters.page - Page number
+ * @param {number} filters.limit - Items per page
+ * @returns {Promise<Object>} Object with products array and meta information
  */
 export async function fetchProducts(filters = {}) {
   try {
     const queryParams = new URLSearchParams()
 
+    // Always include page and limit (default values if not provided)
+    queryParams.append('page', filters.page || 1)
+    queryParams.append('limit', filters.limit || 12)
+
+    // Optional filters
     if (filters.category) {
       queryParams.append('category', filters.category)
     }
-    if (filters.page) {
-      queryParams.append('page', filters.page)
+    if (filters.min_price !== undefined && filters.min_price !== null) {
+      queryParams.append('min_price', filters.min_price)
     }
-    if (filters.limit) {
-      queryParams.append('limit', filters.limit)
+    if (filters.max_price !== undefined && filters.max_price !== null) {
+      queryParams.append('max_price', filters.max_price)
+    }
+    if (filters.is_active !== undefined && filters.is_active !== null) {
+      queryParams.append('is_active', filters.is_active)
+    }
+    if (filters.sort) {
+      queryParams.append('sort', filters.sort)
     }
 
-    const url = `${API_BASE_URL}/products${queryParams.toString() ? `?${queryParams.toString()}` : ''}`
+    const url = `${API_BASE_URL}/products?${queryParams.toString()}`
 
     const response = await fetch(url, {
       method: 'GET',
