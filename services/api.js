@@ -100,3 +100,129 @@ export async function fetchProducts(filters = {}) {
   }
 }
 
+/**
+ * Create a new product with variants
+ * @param {Object} productData - Product data including general info and variants
+ * @returns {Promise<Object>} Created product object
+ */
+export async function createProduct(productData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(productData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success && result.data) {
+      return result.data
+    }
+
+    throw new Error('Invalid response format')
+  } catch (error) {
+    console.error('Error creating product:', error)
+    throw error
+  }
+}
+
+/**
+ * Update an existing product
+ * @param {string} productId - Product UUID
+ * @param {Object} productData - Updated product data
+ * @returns {Promise<Object>} Updated product object
+ */
+export async function updateProduct(productId, productData) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(productData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success && result.data) {
+      return result.data
+    }
+
+    throw new Error('Invalid response format')
+  } catch (error) {
+    console.error('Error updating product:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a product
+ * @param {string} productId - Product UUID
+ * @returns {Promise<boolean>} Success status
+ */
+export async function deleteProduct(productId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    return result.success || false
+  } catch (error) {
+    console.error('Error deleting product:', error)
+    throw error
+  }
+}
+
+/**
+ * Fetch a single product by ID
+ * @param {string} productId - Product UUID
+ * @returns {Promise<Object>} Product object
+ */
+export async function fetchProductById(productId) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success && result.data) {
+      return result.data
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error fetching product:', error)
+    return null
+  }
+}
+

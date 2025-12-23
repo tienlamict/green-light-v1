@@ -1,0 +1,820 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Save, X, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import ImageUploader from './ImageUploader'
+
+export default function ProductFormNew({ product = null, categories = [], onSubmit, onCancel }) {
+  const router = useRouter()
+  
+  // Product General Information
+  const [generalInfo, setGeneralInfo] = useState({
+    name: '',
+    slug: '',
+    short_desc: '',
+    description: '',
+    category_id: '',
+  })
+
+  // Product Variants
+  const [variants, setVariants] = useState([
+    {
+      id: Date.now(),
+      sku: '',
+      power: '',
+      hole_size: '',
+      power_supply: '',
+      color_temp: '',
+      dimensions: '',
+      led_chip: '',
+      luminous_flux: '',
+      cri: '',
+      beam_angle: '',
+      material: '',
+      ip_rating: '',
+      warranty: '',
+      power_factor: '',
+      body_color: '',
+      weight: '',
+      brightness: '',
+      price: '',
+      stock: '',
+      images: [], // Mỗi variant có ảnh riêng
+    }
+  ])
+
+  const [errors, setErrors] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [expandedVariants, setExpandedVariants] = useState([0])
+
+  useEffect(() => {
+    if (product) {
+      setGeneralInfo({
+        name: product.name || '',
+        slug: product.slug || '',
+        short_desc: product.short_desc || '',
+        description: product.description || '',
+        category_id: product.category_id || '',
+      })
+      
+      if (product.variants && product.variants.length > 0) {
+        setVariants(product.variants.map(v => ({
+          ...v,
+          images: v.images || []
+        })))
+      }
+    }
+  }, [product])
+
+  const generateSlug = (name) => {
+    return name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+  }
+
+  const handleGeneralInfoChange = (e) => {
+    const { name, value } = e.target
+    setGeneralInfo(prev => {
+      const updated = { ...prev, [name]: value }
+      
+      // Auto-generate slug from name
+      if (name === 'name') {
+        updated.slug = generateSlug(value)
+      }
+      
+      return updated
+    })
+    
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  const handleVariantChange = (index, field, value) => {
+    setVariants(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], [field]: value }
+      return updated
+    })
+    
+    if (errors[`variant_${index}_${field}`]) {
+      setErrors(prev => ({ ...prev, [`variant_${index}_${field}`]: '' }))
+    }
+  }
+
+  const handleVariantImagesChange = (index, images) => {
+    setVariants(prev => {
+      const updated = [...prev]
+      updated[index] = { ...updated[index], images: images }
+      return updated
+    })
+  }
+
+  const addVariant = () => {
+    const newVariant = {
+      id: Date.now(),
+      sku: '',
+      power: '',
+      hole_size: '',
+      power_supply: '',
+      color_temp: '',
+      dimensions: '',
+      led_chip: '',
+      luminous_flux: '',
+      cri: '',
+      beam_angle: '',
+      material: '',
+      ip_rating: '',
+      warranty: '',
+      power_factor: '',
+      body_color: '',
+      weight: '',
+      brightness: '',
+      price: '',
+      stock: '',
+      images: [], // Khởi tạo mảng ảnh rỗng
+    }
+    setVariants(prev => [...prev, newVariant])
+    setExpandedVariants(prev => [...prev, variants.length])
+  }
+
+  const removeVariant = (index) => {
+    if (variants.length === 1) {
+      alert('Phải có ít nhất 1 variant')
+      return
+    }
+    setVariants(prev => prev.filter((_, i) => i !== index))
+    setExpandedVariants(prev => prev.filter(i => i !== index).map(i => i > index ? i - 1 : i))
+  }
+
+  const toggleVariantExpand = (index) => {
+    setExpandedVariants(prev => 
+      prev.includes(index) 
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
+    )
+  }
+
+  const validate = () => {
+    const newErrors = {}
+    
+    // Validate general info
+    if (!generalInfo.name.trim()) {
+      newErrors.name = 'Tên sản phẩm là bắt buộc'
+    }
+    
+    if (!generalInfo.category_id) {
+      newErrors.category_id = 'Danh mục là bắt buộc'
+    }
+    
+    // Validate variants
+    variants.forEach((variant, index) => {
+      if (!variant.sku.trim()) {
+        newErrors[`variant_${index}_sku`] = 'Mã là bắt buộc'
+      }
+      
+      if (!variant.price || parseFloat(variant.price) <= 0) {
+        newErrors[`variant_${index}_price`] = 'Giá phải lớn hơn 0'
+      }
+      
+      if (variant.stock === '' || parseInt(variant.stock) < 0) {
+        newErrors[`variant_${index}_stock`] = 'Số lượng không hợp lệ'
+      }
+    })
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!validate()) {
+      alert('Vui lòng kiểm tra lại thông tin')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const submitData = {
+        ...generalInfo,
+        variants: variants.map(v => ({
+          ...v,
+          price: parseFloat(v.price),
+          stock: parseInt(v.stock),
+          images: v.images || [],
+        })),
+      }
+
+      if (onSubmit) {
+        await onSubmit(submitData)
+      } else {
+        // Default behavior - save to localStorage
+        const products = JSON.parse(localStorage.getItem('admin_products') || '[]')
+        if (product) {
+          const index = products.findIndex(p => p.product_id === product.product_id)
+          if (index !== -1) {
+            products[index] = {
+              ...product,
+              ...submitData,
+              updated_at: new Date().toISOString(),
+            }
+          }
+        } else {
+          products.push({
+            product_id: Date.now().toString(),
+            ...submitData,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+        }
+        localStorage.setItem('admin_products', JSON.stringify(products))
+        router.push('/admin/products')
+      }
+    } catch (error) {
+      console.error('Error saving product:', error)
+      setErrors({ submit: error.message || 'Lỗi khi lưu sản phẩm' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+        {/* Left Column - Main Content */}
+        <div className="lg:col-span-2 flex flex-col">
+          {/* General Information */}
+          <div className="bg-white p-6 rounded-lg shadow flex-1 flex flex-col">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="w-1 h-6 bg-blue-600 mr-3"></div>
+              Thông Tin Chung
+            </h2>
+            
+            <div className="space-y-4 flex-1">
+              {/* Product Name */}
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                  Tên Sản Phẩm <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={generalInfo.name}
+                  onChange={handleGeneralInfoChange}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.name ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Nhập tên sản phẩm"
+                />
+                {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
+              </div>
+
+              {/* Slug */}
+              <div>
+                <label htmlFor="slug" className="block text-sm font-medium text-gray-700 mb-2">
+                  Slug (URL)
+                </label>
+                <input
+                  type="text"
+                  id="slug"
+                  name="slug"
+                  value={generalInfo.slug}
+                  onChange={handleGeneralInfoChange}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors bg-gray-50"
+                  placeholder="tu-dong-tao-tu-ten"
+                  readOnly
+                />
+                <p className="mt-1 text-xs text-gray-500">Tự động tạo từ tên sản phẩm</p>
+              </div>
+
+              {/* Category */}
+              <div>
+                <label htmlFor="category_id" className="block text-sm font-medium text-gray-700 mb-2">
+                  Danh Mục <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="category_id"
+                  name="category_id"
+                  value={generalInfo.category_id}
+                  onChange={handleGeneralInfoChange}
+                  className={`w-full px-4 py-2.5 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors ${
+                    errors.category_id ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Chọn danh mục</option>
+                  {categories.map((cat) => (
+                    <option key={cat.category_id} value={cat.category_id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.category_id && <p className="mt-1 text-sm text-red-600">{errors.category_id}</p>}
+              </div>
+
+              {/* Short Description */}
+              <div>
+                <label htmlFor="short_desc" className="block text-sm font-medium text-gray-700 mb-2">
+                  Mô Tả Ngắn
+                </label>
+                <textarea
+                  id="short_desc"
+                  name="short_desc"
+                  value={generalInfo.short_desc}
+                  onChange={handleGeneralInfoChange}
+                  rows={2}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholder="Mô tả ngắn gọn về sản phẩm"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Mô Tả Chi Tiết
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={generalInfo.description}
+                  onChange={handleGeneralInfoChange}
+                  rows={6}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                  placeholder="Mô tả chi tiết về sản phẩm"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column - Sidebar */}
+        <div className="flex flex-col space-y-6">
+          {/* Actions */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thao Tác</h2>
+            
+            {errors.submit && (
+              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
+                {errors.submit}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              >
+                <Save className="w-5 h-5" />
+                <span>{loading ? 'Đang lưu...' : 'Lưu Sản Phẩm'}</span>
+              </button>
+              
+              <button
+                type="button"
+                onClick={onCancel || (() => router.push('/admin/products'))}
+                className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+              >
+                <X className="w-5 h-5" />
+                <span>Hủy</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Summary */}
+          <div className="bg-white p-6 rounded-lg shadow flex-1 flex flex-col">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+              <div className="w-1 h-6 bg-purple-600 mr-3"></div>
+              Tóm Tắt
+            </h2>
+            <div className="space-y-3 flex-1">
+              {/* Thông tin sản phẩm */}
+              <div className="space-y-2 pb-3 border-b border-gray-200">
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-0.5">Tên Sản Phẩm</label>
+                  <p className="text-xs font-medium text-gray-900 break-words line-clamp-2">
+                    {generalInfo.name || <span className="text-gray-400 italic">Chưa có</span>}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-0.5">Slug</label>
+                  <p className="text-xs text-gray-700 break-all font-mono line-clamp-1">
+                    {generalInfo.slug || <span className="text-gray-400 italic">Chưa có</span>}
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-0.5">Danh Mục</label>
+                  <p className="text-xs font-medium text-gray-900 line-clamp-1">
+                    {generalInfo.category_id 
+                      ? categories.find(c => c.category_id === generalInfo.category_id)?.name || 'Không xác định'
+                      : <span className="text-gray-400 italic">Chưa chọn</span>
+                    }
+                  </p>
+                </div>
+              </div>
+
+              {/* Thống kê biến thể */}
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Số biến thể:</span>
+                  <span className="text-xs font-medium text-gray-900">{variants.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Tổng số lượng:</span>
+                  <span className="text-xs font-medium text-gray-900">
+                    {variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0).toLocaleString('vi-VN')}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Tổng hình ảnh:</span>
+                  <span className="text-xs font-medium text-gray-900">
+                    {variants.reduce((sum, v) => sum + ((v.images && v.images.length) || 0), 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Giá thấp nhất:</span>
+                  <span className="text-xs font-medium text-gray-900">
+                    {variants.length > 0 && Math.min(...variants.map(v => parseFloat(v.price) || 0)) > 0
+                      ? Math.min(...variants.map(v => parseFloat(v.price) || 0)).toLocaleString('vi-VN') + 'đ'
+                      : <span className="text-gray-400">-</span>
+                    }
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-600">Giá cao nhất:</span>
+                  <span className="text-xs font-medium text-gray-900">
+                    {variants.length > 0 && Math.max(...variants.map(v => parseFloat(v.price) || 0)) > 0
+                      ? Math.max(...variants.map(v => parseFloat(v.price) || 0)).toLocaleString('vi-VN') + 'đ'
+                      : <span className="text-gray-400">-</span>
+                    }
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Product Variants - Full Width */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+            <div className="w-1 h-6 bg-green-600 mr-3"></div>
+            Biến Thể Sản Phẩm
+          </h2>
+          <button
+            type="button"
+            onClick={addVariant}
+            className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Thêm Biến Thể</span>
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          {variants.map((variant, index) => (
+                <div key={variant.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Variant Header */}
+                  <div className="bg-gray-50 px-4 py-3 flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => toggleVariantExpand(index)}
+                      className="flex items-center space-x-2 text-sm font-medium text-gray-700 hover:text-gray-900"
+                    >
+                      {expandedVariants.includes(index) ? (
+                        <ChevronUp className="w-4 h-4" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4" />
+                      )}
+                      <span>Biến Thể #{index + 1}</span>
+                      {variant.sku && <span className="text-gray-500">- {variant.sku}</span>}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeVariant(index)}
+                      className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+                      title="Xóa biến thể"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+
+                  {/* Variant Content */}
+                  {expandedVariants.includes(index) && (
+                    <div className="p-4 space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Mã SKU */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Mã SKU <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.sku}
+                            onChange={(e) => handleVariantChange(index, 'sku', e.target.value)}
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                              errors[`variant_${index}_sku`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="VD: DL-10W-3000K"
+                          />
+                          {errors[`variant_${index}_sku`] && (
+                            <p className="mt-1 text-xs text-red-600">{errors[`variant_${index}_sku`]}</p>
+                          )}
+                        </div>
+
+                        {/* Công Suất */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Công Suất (W)
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.power}
+                            onChange={(e) => handleVariantChange(index, 'power', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: 10W, 15W"
+                          />
+                        </div>
+
+                        {/* Lỗ Khoét */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Lỗ Khoét (mm)
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.hole_size}
+                            onChange={(e) => handleVariantChange(index, 'hole_size', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: Ø90mm"
+                          />
+                        </div>
+
+                        {/* Nguồn Điện */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Nguồn Điện
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.power_supply}
+                            onChange={(e) => handleVariantChange(index, 'power_supply', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: 220V AC"
+                          />
+                        </div>
+
+                        {/* Nhiệt Độ Màu */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Nhiệt Độ Màu
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.color_temp}
+                            onChange={(e) => handleVariantChange(index, 'color_temp', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: 3000K, 4000K, 6500K"
+                          />
+                        </div>
+
+                        {/* Kích Thước */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Kích Thước (mm)
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.dimensions}
+                            onChange={(e) => handleVariantChange(index, 'dimensions', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: Ø100 x H50mm"
+                          />
+                        </div>
+
+                        {/* Chip LED */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Chip LED
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.led_chip}
+                            onChange={(e) => handleVariantChange(index, 'led_chip', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: Samsung, Bridgelux"
+                          />
+                        </div>
+
+                        {/* Quang Thông */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Quang Thông (Lm)
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.luminous_flux}
+                            onChange={(e) => handleVariantChange(index, 'luminous_flux', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: 900Lm"
+                          />
+                        </div>
+
+                        {/* Độ Hoàn Màu */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Độ Hoàn Màu (CRI)
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.cri}
+                            onChange={(e) => handleVariantChange(index, 'cri', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: CRI>80, CRI>90"
+                          />
+                        </div>
+
+                        {/* Góc Chiếu */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Góc Chiếu
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.beam_angle}
+                            onChange={(e) => handleVariantChange(index, 'beam_angle', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: 24°, 36°, 60°"
+                          />
+                        </div>
+
+                        {/* Chất Liệu */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Chất Liệu
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.material}
+                            onChange={(e) => handleVariantChange(index, 'material', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: Nhôm đúc, Nhựa PC"
+                          />
+                        </div>
+
+                        {/* IP Rating */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Chỉ Số IP
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.ip_rating}
+                            onChange={(e) => handleVariantChange(index, 'ip_rating', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: IP20, IP44, IP65"
+                          />
+                        </div>
+
+                        {/* Bảo Hành */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Bảo Hành
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.warranty}
+                            onChange={(e) => handleVariantChange(index, 'warranty', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: 2 năm, 3 năm"
+                          />
+                        </div>
+
+                        {/* Hệ Số PF */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Hệ Số PF
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.power_factor}
+                            onChange={(e) => handleVariantChange(index, 'power_factor', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: >0.9, >0.95"
+                          />
+                        </div>
+
+                        {/* Màu Vỏ */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Màu Vỏ
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.body_color}
+                            onChange={(e) => handleVariantChange(index, 'body_color', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: Trắng, Đen, Bạc"
+                          />
+                        </div>
+
+                        {/* Khối Lượng */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Khối Lượng
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.weight}
+                            onChange={(e) => handleVariantChange(index, 'weight', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: 0.5kg, 1.2kg"
+                          />
+                        </div>
+
+                        {/* Độ Chói */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Độ Chói
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.brightness}
+                            onChange={(e) => handleVariantChange(index, 'brightness', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: Chống chói UGR<19"
+                          />
+                        </div>
+
+                        {/* Giá */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Giá (VNĐ) <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={variant.price}
+                            onChange={(e) => handleVariantChange(index, 'price', e.target.value)}
+                            min="0"
+                            step="1000"
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                              errors[`variant_${index}_price`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="0"
+                          />
+                          {errors[`variant_${index}_price`] && (
+                            <p className="mt-1 text-xs text-red-600">{errors[`variant_${index}_price`]}</p>
+                          )}
+                        </div>
+
+                        {/* Stock */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Số Lượng <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="number"
+                            value={variant.stock}
+                            onChange={(e) => handleVariantChange(index, 'stock', e.target.value)}
+                            min="0"
+                            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm ${
+                              errors[`variant_${index}_stock`] ? 'border-red-500' : 'border-gray-300'
+                            }`}
+                            placeholder="0"
+                          />
+                          {errors[`variant_${index}_stock`] && (
+                            <p className="mt-1 text-xs text-red-600">{errors[`variant_${index}_stock`]}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Hình Ảnh Biến Thể */}
+                      <div className="pt-4 border-t border-gray-200">
+                        <label className="block text-sm font-medium text-gray-700 mb-3">
+                          Hình Ảnh Biến Thể
+                        </label>
+                        <ImageUploader
+                          images={variant.images || []}
+                          onChange={(images) => handleVariantImagesChange(index, images)}
+                          maxImages={5}
+                        />
+                        <p className="mt-2 text-xs text-gray-500">
+                          Tối đa 5 hình ảnh cho biến thể này. Ảnh đầu tiên sẽ là ảnh đại diện.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+    </form>
+  )
+}
+
