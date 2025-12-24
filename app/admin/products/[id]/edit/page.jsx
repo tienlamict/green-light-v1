@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
-import ProductForm from '@/components/admin/ProductForm'
-import { fetchProducts, fetchCategories } from '@/services/api'
+import ProductFormNew from '@/components/admin/ProductFormNew'
+import { fetchProductById, fetchCategories, updateProduct } from '@/services/api'
 
 export default function EditProductPage() {
   const params = useParams()
@@ -29,19 +29,22 @@ export default function EditProductPage() {
         setCategories(stored)
       }
 
-      // Load product
-      const result = await fetchProducts({ page: 1, limit: 1000 })
-      const found = result.products?.find(p => (p.product_id || p.id) === params.id)
+      // Load product by ID or slug
+      const productData = await fetchProductById(params.id)
       
-      if (found) {
-        setProduct(found)
+      if (productData) {
+        setProduct(productData)
       } else {
         // Fallback to localStorage
         const stored = JSON.parse(localStorage.getItem('admin_products') || '[]')
-        const foundStored = stored.find(p => (p.product_id || p.id) === params.id)
+        const foundStored = stored.find(p => 
+          (p.product_id || p.id) === params.id || 
+          p.slug === params.id
+        )
         if (foundStored) {
           setProduct(foundStored)
         } else {
+          alert('Product not found')
           router.push('/admin/products')
         }
       }
@@ -49,10 +52,14 @@ export default function EditProductPage() {
       console.error('Error loading data:', error)
       // Fallback to localStorage
       const storedProducts = JSON.parse(localStorage.getItem('admin_products') || '[]')
-      const found = storedProducts.find(p => (p.product_id || p.id) === params.id)
+      const found = storedProducts.find(p => 
+        (p.product_id || p.id) === params.id || 
+        p.slug === params.id
+      )
       if (found) {
         setProduct(found)
       } else {
+        alert('Error loading product')
         router.push('/admin/products')
       }
       
@@ -60,6 +67,17 @@ export default function EditProductPage() {
       setCategories(storedCategories)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSubmit = async (productData) => {
+    try {
+      await updateProduct(product.product_id, productData)
+      alert('Product updated successfully!')
+      router.push('/admin/products')
+    } catch (error) {
+      console.error('Error updating product:', error)
+      throw error
     }
   }
 
@@ -84,7 +102,11 @@ export default function EditProductPage() {
           <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
           <p className="mt-1 text-sm text-gray-500">Update product information</p>
         </div>
-        <ProductForm product={product} categories={categories} />
+        <ProductFormNew 
+          product={product} 
+          categories={categories} 
+          onSubmit={handleSubmit}
+        />
       </div>
     </AdminLayout>
   )

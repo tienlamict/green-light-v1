@@ -213,13 +213,13 @@ export async function deleteProduct(productId) {
 }
 
 /**
- * Fetch a single product by ID
- * @param {string} productId - Product UUID
+ * Fetch a single product by ID or slug
+ * @param {string} productIdOrSlug - Product UUID or slug
  * @returns {Promise<Object>} Product object
  */
-export async function fetchProductById(productId) {
+export async function fetchProductById(productIdOrSlug) {
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
+    const response = await fetch(`${API_BASE_URL}/products/${productIdOrSlug}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

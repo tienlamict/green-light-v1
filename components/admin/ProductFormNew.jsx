@@ -60,10 +60,43 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
       })
       
       if (product.variants && product.variants.length > 0) {
-        setVariants(product.variants.map(v => ({
-          ...v,
-          images: v.images || []
-        })))
+        const mappedVariants = product.variants.map((v, index) => {
+          const attrs = v.attributes || {}
+          return {
+            id: v.variant_id || Date.now() + index,
+            variant_id: v.variant_id, // Keep original ID for updates
+            variant_name: v.name || '',
+            sku: v.sku || '',
+            power: attrs.power || '',
+            hole_size: attrs.cutout_size || '',
+            power_supply: attrs.input_voltage || '',
+            color_temp: attrs.color_temperature || '',
+            dimensions: attrs.dimensions || '',
+            led_chip: attrs.led_chip || '',
+            luminous_flux: attrs.luminous_flux || '',
+            cri: attrs.cri || '',
+            beam_angle: attrs.beam_angle || '',
+            material: attrs.material || '',
+            ip_rating: attrs.ip_rating || '',
+            warranty: attrs.warranty || '',
+            power_factor: attrs.power_factor || '',
+            body_color: attrs.housing_color || '',
+            weight: attrs.weight || '',
+            brightness: attrs.luminance || '',
+            price: v.price || '',
+            stock: v.stock || '',
+            images: Array.isArray(v.images) 
+              ? v.images.map((img, idx) => ({
+                  id: Date.now() + idx,
+                  url: typeof img === 'string' ? img : img.url,
+                  file: null
+                }))
+              : []
+          }
+        })
+        setVariants(mappedVariants)
+        // Expand first variant by default
+        setExpandedVariants([0])
       }
     }
   }, [product])
@@ -206,6 +239,13 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
       // Tính tổng stock từ các variants
       const totalStock = variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0)
       
+      // Lấy thumbnail từ ảnh đầu tiên của variant đầu tiên
+      let thumbnailUrl = ''
+      if (variants.length > 0 && variants[0].images && variants[0].images.length > 0) {
+        const firstImage = variants[0].images[0]
+        thumbnailUrl = typeof firstImage === 'string' ? firstImage : firstImage.url
+      }
+      
       // Map data theo API structure
       const submitData = {
         name: generalInfo.name,
@@ -213,7 +253,7 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
         short_desc: generalInfo.short_desc || '',
         description: generalInfo.description || '',
         stock: totalStock, // Tổng stock của các variants
-        thumbnail_url: '', // Có thể lấy từ ảnh đầu tiên của variant đầu tiên
+        thumbnail_url: thumbnailUrl,
         category_id: generalInfo.category_id,
         is_active: true,
         variants: variants.map(v => ({
@@ -240,7 +280,7 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
           price: parseFloat(v.price) || 0,
           stock: parseInt(v.stock) || 0,
           is_active: true,
-          images: v.images || [],
+          images: (v.images || []).map(img => typeof img === 'string' ? img : img.url).filter(Boolean),
         })),
       }
 
