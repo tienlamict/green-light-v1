@@ -21,6 +21,7 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
   const [variants, setVariants] = useState([
     {
       id: Date.now(),
+      variant_name: '',
       sku: '',
       power: '',
       hole_size: '',
@@ -118,6 +119,7 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
   const addVariant = () => {
     const newVariant = {
       id: Date.now(),
+      variant_name: '',
       sku: '',
       power: '',
       hole_size: '',
@@ -201,12 +203,43 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
 
     setLoading(true)
     try {
+      // Tính tổng stock từ các variants
+      const totalStock = variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0)
+      
+      // Map data theo API structure
       const submitData = {
-        ...generalInfo,
+        name: generalInfo.name,
+        slug: generalInfo.slug,
+        short_desc: generalInfo.short_desc || '',
+        description: generalInfo.description || '',
+        stock: totalStock, // Tổng stock của các variants
+        thumbnail_url: '', // Có thể lấy từ ảnh đầu tiên của variant đầu tiên
+        category_id: generalInfo.category_id,
+        is_active: true,
         variants: variants.map(v => ({
-          ...v,
-          price: parseFloat(v.price),
-          stock: parseInt(v.stock),
+          sku: v.sku,
+          name: v.variant_name || '',
+          attributes: {
+            power: v.power || '',
+            cutout_size: v.hole_size || '',
+            input_voltage: v.power_supply || '',
+            color_temperature: v.color_temp || '',
+            dimensions: v.dimensions || '',
+            led_chip: v.led_chip || '',
+            luminous_flux: v.luminous_flux || '',
+            cri: v.cri || '',
+            beam_angle: v.beam_angle || '',
+            material: v.material || '',
+            ip_rating: v.ip_rating || '',
+            warranty: v.warranty || '',
+            power_factor: v.power_factor || '',
+            housing_color: v.body_color || '',
+            weight: v.weight || '',
+            luminance: v.brightness || '',
+          },
+          price: parseFloat(v.price) || 0,
+          stock: parseInt(v.stock) || 0,
+          is_active: true,
           images: v.images || [],
         })),
       }
@@ -493,7 +526,8 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
                         <ChevronDown className="w-4 h-4" />
                       )}
                       <span>Biến Thể #{index + 1}</span>
-                      {variant.sku && <span className="text-gray-500">- {variant.sku}</span>}
+                      {variant.variant_name && <span className="text-gray-500">- {variant.variant_name}</span>}
+                      {!variant.variant_name && variant.sku && <span className="text-gray-500">- {variant.sku}</span>}
                     </button>
                     <button
                       type="button"
@@ -509,6 +543,20 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
                   {expandedVariants.includes(index) && (
                     <div className="p-4 space-y-4">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Tên Biến Thể */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Tên Biến Thể Sản Phẩm
+                          </label>
+                          <input
+                            type="text"
+                            value={variant.variant_name}
+                            onChange={(e) => handleVariantChange(index, 'variant_name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                            placeholder="VD: Đèn LED Downlight 10W - Trắng"
+                          />
+                        </div>
+
                         {/* Mã SKU */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">

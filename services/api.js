@@ -107,16 +107,25 @@ export async function fetchProducts(filters = {}) {
  */
 export async function createProduct(productData) {
   try {
+    // Get token from localStorage
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${API_BASE_URL}/products`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(productData),
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
+      const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
 
@@ -141,16 +150,25 @@ export async function createProduct(productData) {
  */
 export async function updateProduct(productId, productData) {
   try {
+    // Get token from localStorage
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
     const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: JSON.stringify(productData),
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
+      const errorData = await response.json().catch(() => ({}))
       throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
 

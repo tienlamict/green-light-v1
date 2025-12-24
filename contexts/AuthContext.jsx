@@ -25,18 +25,36 @@ export function AuthProvider({ children }) {
 
   const login = async (email, password) => {
     try {
-      // Mock login - in production, call your API
-      // For demo purposes, accept any email/password
-      const userData = {
-        id: '1',
-        email: email,
-        name: 'Admin User',
-        avatar: '/admin-avatar.png',
-      }
+      // Call real API login
+      const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'
       
-      localStorage.setItem('admin_user', JSON.stringify(userData))
-      setUser(userData)
-      return { success: true }
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Login failed')
+      }
+
+      const result = await response.json()
+      
+      if (result.success && result.data) {
+        const { token, user: userData } = result.data
+        
+        // Save token and user data
+        localStorage.setItem('auth_token', token)
+        localStorage.setItem('admin_user', JSON.stringify(userData))
+        
+        setUser(userData)
+        return { success: true }
+      } else {
+        throw new Error('Invalid response format')
+      }
     } catch (error) {
       return { success: false, error: error.message }
     }
@@ -44,6 +62,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem('admin_user')
+    localStorage.removeItem('auth_token')
     setUser(null)
     router.push('/admin/login')
   }
