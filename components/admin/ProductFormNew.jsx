@@ -86,11 +86,27 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
             price: v.price || '',
             stock: v.stock || '',
             images: Array.isArray(v.images) 
-              ? v.images.map((img, idx) => ({
-                  id: Date.now() + idx,
-                  url: typeof img === 'string' ? img : img.url,
-                  file: null
-                }))
+              ? v.images.map((img, idx) => {
+                  // Handle both old format (string) and new format (object)
+                  if (typeof img === 'string') {
+                    return {
+                      id: Date.now() + idx,
+                      image_id: null,
+                      url: img,
+                      is_main: idx === 0,
+                      sort_order: idx,
+                      file: null
+                    }
+                  }
+                  return {
+                    id: img.image_id || Date.now() + idx,
+                    image_id: img.image_id,
+                    url: img.url,
+                    is_main: img.is_main !== undefined ? img.is_main : idx === 0,
+                    sort_order: img.sort_order !== undefined ? img.sort_order : idx,
+                    file: null
+                  }
+                })
               : []
           }
         })
@@ -144,7 +160,13 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
   const handleVariantImagesChange = (index, images) => {
     setVariants(prev => {
       const updated = [...prev]
-      updated[index] = { ...updated[index], images: images }
+      // Ensure each image has is_main and sort_order
+      const processedImages = images.map((img, idx) => ({
+        ...img,
+        is_main: idx === 0, // First image is always main
+        sort_order: idx
+      }))
+      updated[index] = { ...updated[index], images: processedImages }
       return updated
     })
   }
@@ -239,11 +261,16 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
       // Tính tổng stock từ các variants
       const totalStock = variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0)
       
-      // Lấy thumbnail từ ảnh đầu tiên của variant đầu tiên
+      // Lấy thumbnail từ ảnh đầu tiên của variant đầu tiên (skip base64)
       let thumbnailUrl = ''
       if (variants.length > 0 && variants[0].images && variants[0].images.length > 0) {
-        const firstImage = variants[0].images[0]
-        thumbnailUrl = typeof firstImage === 'string' ? firstImage : firstImage.url
+        for (const img of variants[0].images) {
+          const url = typeof img === 'string' ? img : img.url
+          if (url && !url.startsWith('data:image')) {
+            thumbnailUrl = url
+            break
+          }
+        }
       }
       
       // Map data theo API structure
@@ -280,7 +307,21 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
           price: parseFloat(v.price) || 0,
           stock: parseInt(v.stock) || 0,
           is_active: true,
-          images: (v.images || []).map(img => typeof img === 'string' ? img : img.url).filter(Boolean),
+          images: (v.images || [])
+            .filter(img => {
+              // Filter out base64 images (preview mode)
+              const url = typeof img === 'string' ? img : img.url
+              return url && !url.startsWith('data:image')
+            })
+            .map((img, index) => {
+              const url = typeof img === 'string' ? img : img.url
+              return {
+                image_id: img.image_id || img.id || `img-${Date.now()}-${index}`,
+                url: url,
+                is_main: index === 0, // Ảnh đầu tiên là main
+                sort_order: index
+              }
+            })
         })),
       }
 
@@ -891,6 +932,9 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
                           images={variant.images || []}
                           onChange={(images) => handleVariantImagesChange(index, images)}
                           maxImages={5}
+                          uploadMode={product ? 'minio' : 'preview'}
+                          productId={product?.product_id}
+                          variantId={variant.variant_id}
                         />
                         <p className="mt-2 text-xs text-gray-500">
                           Tối đa 5 hình ảnh cho biến thể này. Ảnh đầu tiên sẽ là ảnh đại diện.

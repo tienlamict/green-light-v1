@@ -1,11 +1,20 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Upload, Image as ImageIcon, Star } from 'lucide-react'
+import { X, Upload, Image as ImageIcon, Star, Loader2 } from 'lucide-react'
 
-export default function ImageUploader({ images = [], onChange, maxImages = 10 }) {
+export default function ImageUploader({ 
+  images = [], 
+  onChange, 
+  maxImages = 10,
+  productId = null,  // Product ID for MinIO upload
+  variantId = null,  // Variant ID for MinIO upload
+  uploadMode = 'preview' // 'preview' or 'minio'
+}) {
   const [previewImages, setPreviewImages] = useState(images)
   const [mainImageIndex, setMainImageIndex] = useState(0)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 })
   const fileInputRef = useRef(null)
 
   // Sync with images prop when it changes externally
@@ -15,8 +24,19 @@ export default function ImageUploader({ images = [], onChange, maxImages = 10 })
     }
   }, [images])
 
-  const handleFileSelect = (e) => {
+  const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files)
+    
+    if (uploadMode === 'minio' && productId) {
+      // MinIO upload mode - upload immediately
+      await handleMinIOUpload(files)
+    } else {
+      // Preview mode - just show base64 preview
+      handlePreviewMode(files)
+    }
+  }
+
+  const handlePreviewMode = (files) => {
     const newImages = []
 
     files.forEach((file) => {
@@ -27,23 +47,71 @@ export default function ImageUploader({ images = [], onChange, maxImages = 10 })
             id: Date.now() + Math.random(),
             file: file,
             preview: e.target.result,
-            url: e.target.result, // For base64 or can be converted to URL
+            url: e.target.result, // Base64 for preview
           }
           newImages.push(imageData)
 
           if (newImages.length === files.length || previewImages.length + newImages.length >= maxImages) {
             const updatedImages = [...previewImages, ...newImages]
             setPreviewImages(updatedImages)
-            onChange(updatedImages.map(img => ({
-              preview: img.preview,
-              url: img.url,
-              file: img.file,
-            })))
+            onChange(updatedImages)
           }
         }
         reader.readAsDataURL(file)
       }
     })
+  }
+
+  const handleMinIOUpload = async (files) => {
+    if (!productId) {
+      alert('Product ID is required for MinIO upload')
+      return
+    }
+
+    setUploading(true)
+    setUploadProgress({ current: 0, total: files.length })
+
+    const { uploadVariantImages } = await import('@/services/imageUpload')
+    
+    const validFiles = files.filter(file => 
+      file.type.startsWith('image/') && 
+      previewImages.length < maxImages
+    ).slice(0, maxImages - previewImages.length)
+
+    const result = await uploadVariantImages(
+      productId, 
+      variantId, 
+      validFiles,
+      (current, total) => {
+        setUploadProgress({ current, total })
+      }
+    )
+
+    setUploading(false)
+    setUploadProgress({ current: 0, total: 0 })
+
+    if (result.success) {
+      // Add uploaded images to preview
+      const uploadedImages = result.images.map((img, idx) => ({
+        id: img.image_id,
+        image_id: img.image_id,
+        url: img.public_url,
+        preview: img.public_url,
+        is_main: previewImages.length === 0 && idx === 0,
+        sort_order: previewImages.length + idx,
+        file: null
+      }))
+
+      const updatedImages = [...previewImages, ...uploadedImages]
+      setPreviewImages(updatedImages)
+      onChange(updatedImages)
+
+      if (result.errors.length > 0) {
+        alert(`Some images failed to upload:\n${result.errors.map(e => e.fileName).join('\n')}`)
+      }
+    } else {
+      alert('Failed to upload images. Please try again.')
+    }
   }
 
   const handleRemove = (index) => {
@@ -90,8 +158,8 @@ export default function ImageUploader({ images = [], onChange, maxImages = 10 })
         <div
           onDrop={handleDrop}
           onDragOver={handleDragOver}
-          className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors cursor-pointer"
-          onClick={() => fileInputRef.current?.click()}
+          className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors ${uploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+          onClick={() => !uploading && fileInputRef.current?.click()}
         >
           <input
             ref={fileInputRef}
@@ -100,16 +168,38 @@ export default function ImageUploader({ images = [], onChange, maxImages = 10 })
             accept="image/*"
             onChange={handleFileSelect}
             className="hidden"
+            disabled={uploading}
           />
-          <Upload className="mx-auto h-12 w-12 text-gray-400" />
-          <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700">
-              Click to upload or drag and drop
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              PNG, JPG, GIF up to 10MB (Max {maxImages} images)
-            </p>
-          </div>
+          {uploading ? (
+            <>
+              <Loader2 className="mx-auto h-12 w-12 text-blue-500 animate-spin" />
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700">
+                  Uploading images...
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {uploadProgress.current} of {uploadProgress.total} uploaded
+                </p>
+              </div>
+            </>
+          ) : (
+            <>
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mt-4">
+                <p className="text-sm font-medium text-gray-700">
+                  Click to upload or drag and drop
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  PNG, JPG, GIF up to 10MB (Max {maxImages} images)
+                </p>
+                {uploadMode === 'minio' && (
+                  <p className="text-xs text-blue-500 mt-1">
+                    Images will be uploaded to MinIO storage
+                  </p>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
 
