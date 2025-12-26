@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
 import ProductFormNew from '@/components/admin/ProductFormNew'
-import ImageUploadTest from '@/components/admin/ImageUploadTest'
-import QuickAPITest from '@/components/admin/QuickAPITest'
 import { fetchProductById, fetchCategories, updateProduct } from '@/services/api'
 
 export default function EditProductPage() {
@@ -101,25 +99,15 @@ export default function EditProductPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Edit Product</h1>
-          <p className="mt-1 text-sm text-gray-500">Update product information</p>
+          <h1 className="text-2xl font-bold text-gray-900">Chỉnh Sửa Sản Phẩm</h1>
+          <p className="mt-1 text-sm text-gray-500">Cập nhật thông tin sản phẩm</p>
         </div>
-        
-        {/* Test Components - Remove after testing */}
-        <QuickAPITest 
-          productId={product.product_id}
-          variantId={product.variants?.[0]?.variant_id}
-        />
-        
-        <ImageUploadTest 
-          productId={product.product_id}
-          variantId={product.variants?.[0]?.variant_id}
-        />
         
         <ProductFormNew 
           product={product} 
           categories={categories} 
           onSubmit={handleSubmit}
+          onCancel={() => router.push('/admin/products')}
         />
       </div>
     </AdminLayout>

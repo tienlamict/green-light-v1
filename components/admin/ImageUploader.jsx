@@ -114,9 +114,34 @@ export default function ImageUploader({
     }
   }
 
-  const handleRemove = (index) => {
+  const handleRemove = async (index) => {
+    const imageToRemove = previewImages[index]
+    
+    // If in MinIO mode and image has image_id, delete from server
+    if (uploadMode === 'minio' && imageToRemove.image_id && productId) {
+      const confirmDelete = window.confirm('Bạn có chắc muốn xóa ảnh này? Ảnh sẽ bị xóa vĩnh viễn.')
+      if (!confirmDelete) return
+      
+      try {
+        const { deleteProductImage } = await import('@/services/imageUpload')
+        const success = await deleteProductImage(productId, imageToRemove.image_id)
+        
+        if (!success) {
+          alert('Không thể xóa ảnh từ server. Vui lòng thử lại.')
+          return
+        }
+      } catch (error) {
+        console.error('Error deleting image:', error)
+        alert('Lỗi khi xóa ảnh: ' + error.message)
+        return
+      }
+    }
+    
+    // Remove from local state
     const updated = previewImages.filter((_, i) => i !== index)
     setPreviewImages(updated)
+    
+    // Update main image index
     if (mainImageIndex === index && updated.length > 0) {
       setMainImageIndex(0)
     } else if (mainImageIndex > index && updated.length > 0) {
@@ -124,15 +149,27 @@ export default function ImageUploader({
     } else if (updated.length === 0) {
       setMainImageIndex(0)
     }
-    onChange(updated.map(img => ({
+    
+    // Notify parent component
+    onChange(updated.map((img, idx) => ({
+      ...img,
       preview: img.preview,
       url: img.url,
       file: img.file,
+      is_main: idx === (mainImageIndex === index ? 0 : mainImageIndex > index ? mainImageIndex - 1 : mainImageIndex),
+      sort_order: idx,
     })))
   }
 
   const handleSetMain = (index) => {
     setMainImageIndex(index)
+    // Update parent with new main image
+    const updatedImages = previewImages.map((img, idx) => ({
+      ...img,
+      is_main: idx === index,
+      sort_order: idx,
+    }))
+    onChange(updatedImages)
   }
 
   const handleDrop = (e) => {
