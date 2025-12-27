@@ -1,9 +1,78 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { Save, X, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react'
+import { Save, X, Plus, Trash2, ChevronDown, ChevronUp, Upload as UploadIcon, Image as ImageIcon } from 'lucide-react'
 import ImageUploader from './ImageUploader'
+
+// Thumbnail Uploader Component (Single Image)
+function ThumbnailUploader({ thumbnail, onChange }) {
+  const fileInputRef = useRef(null)
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0]
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        onChange({
+          file: file,
+          preview: e.target.result,
+          url: e.target.result
+        })
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemove = () => {
+    onChange(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  return (
+    <div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+      />
+
+      {thumbnail ? (
+        <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-50 border-2 border-gray-200 group">
+          <img
+            src={thumbnail.preview || thumbnail.url}
+            alt="Thumbnail"
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="opacity-0 group-hover:opacity-100 p-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-all shadow-lg"
+              title="Remove"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div
+          onClick={() => fileInputRef.current?.click()}
+          className="aspect-square rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 hover:border-gray-400 transition-all flex flex-col items-center justify-center gap-2 cursor-pointer"
+        >
+          <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+            <ImageIcon className="w-6 h-6 text-gray-500" />
+          </div>
+          <span className="text-xs text-gray-500 font-medium">Upload Thumbnail</span>
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function ProductFormNew({ product = null, categories = [], onSubmit, onCancel }) {
   const router = useRouter()
@@ -16,6 +85,9 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
     description: '',
     category_id: '',
   })
+
+  // Product Thumbnail
+  const [thumbnail, setThumbnail] = useState(null)
 
   // Product Variants
   const [variants, setVariants] = useState([
@@ -58,10 +130,23 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
         description: product.description || '',
         category_id: product.category_id || '',
       })
+
+      // Load thumbnail
+      if (product.thumbnail_url) {
+        setThumbnail({
+          url: product.thumbnail_url,
+          preview: product.thumbnail_url
+        })
+      }
       
       if (product.variants && product.variants.length > 0) {
         const mappedVariants = product.variants.map((v, index) => {
           const attrs = v.attributes || {}
+          console.log(`🔍 Mapping variant ${index}:`, {
+            variant_id: v.variant_id,
+            name: v.name,
+            sku: v.sku
+          })
           return {
             id: v.variant_id || Date.now() + index,
             variant_id: v.variant_id, // Keep original ID for updates
@@ -261,9 +346,11 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
       // Tính tổng stock từ các variants
       const totalStock = variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0)
       
-      // Lấy thumbnail từ ảnh đầu tiên của variant đầu tiên (skip base64)
+      // Lấy thumbnail URL (ưu tiên thumbnail upload riêng, fallback về ảnh variant đầu tiên)
       let thumbnailUrl = ''
-      if (variants.length > 0 && variants[0].images && variants[0].images.length > 0) {
+      if (thumbnail && thumbnail.url && !thumbnail.url.startsWith('data:image')) {
+        thumbnailUrl = thumbnail.url
+      } else if (variants.length > 0 && variants[0].images && variants[0].images.length > 0) {
         for (const img of variants[0].images) {
           const url = typeof img === 'string' ? img : img.url
           if (url && !url.startsWith('data:image')) {
@@ -507,6 +594,17 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
               Tóm Tắt
             </h2>
             <div className="space-y-3 flex-1">
+              {/* Thumbnail Upload */}
+              <div className="pb-3 border-b border-gray-200">
+                <label className="block text-xs font-medium text-gray-700 mb-2">
+                  Ảnh Đại Diện Sản Phẩm
+                </label>
+                <ThumbnailUploader
+                  thumbnail={thumbnail}
+                  onChange={setThumbnail}
+                />
+              </div>
+
               {/* Thông tin sản phẩm */}
               <div className="space-y-2 pb-3 border-b border-gray-200">
                 <div>
@@ -927,6 +1025,15 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
                       <div className="pt-4 border-t border-gray-200">
                         <label className="block text-sm font-medium text-gray-700 mb-3">
                           Hình Ảnh Biến Thể
+                          {(() => {
+                            console.log(`🖼️ ImageUploader for variant ${index}:`, {
+                              variantId: variant.variant_id,
+                              sku: variant.sku,
+                              uploadMode: product ? 'minio' : 'preview',
+                              productId: product?.product_id
+                            })
+                            return null
+                          })()}
                         </label>
                         <ImageUploader
                           images={variant.images || []}

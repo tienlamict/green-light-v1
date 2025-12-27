@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { X, Upload, Image as ImageIcon, Star, Loader2 } from 'lucide-react'
+import { X, Upload, Image as ImageIcon, Star, Loader2, Plus } from 'lucide-react'
 
 export default function ImageUploader({ 
   images = [], 
@@ -68,6 +68,12 @@ export default function ImageUploader({
       return
     }
 
+    console.log('🔵 ImageUploader.handleMinIOUpload called')
+    console.log('  productId:', productId)
+    console.log('  variantId:', variantId)
+    console.log('  variantId type:', typeof variantId)
+    console.log('  files count:', files.length)
+
     setUploading(true)
     setUploadProgress({ current: 0, total: files.length })
 
@@ -77,6 +83,11 @@ export default function ImageUploader({
       file.type.startsWith('image/') && 
       previewImages.length < maxImages
     ).slice(0, maxImages - previewImages.length)
+
+    console.log('🔵 Calling uploadVariantImages with:')
+    console.log('  productId:', productId)
+    console.log('  variantId:', variantId)
+    console.log('  validFiles:', validFiles.length)
 
     const result = await uploadVariantImages(
       productId, 
@@ -189,115 +200,112 @@ export default function ImageUploader({
   }
 
   return (
-    <div className="space-y-4">
-      {/* Upload Area */}
-      {previewImages.length < maxImages && (
-        <div
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors ${uploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
-          onClick={() => !uploading && fileInputRef.current?.click()}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={handleFileSelect}
-            className="hidden"
-            disabled={uploading}
-          />
-          {uploading ? (
-            <>
-              <Loader2 className="mx-auto h-12 w-12 text-blue-500 animate-spin" />
-              <div className="mt-4">
-                <p className="text-sm font-medium text-gray-700">
-                  Uploading images...
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  {uploadProgress.current} of {uploadProgress.total} uploaded
-                </p>
-              </div>
-            </>
-          ) : (
-            <>
-              <Upload className="mx-auto h-12 w-12 text-gray-400" />
-              <div className="mt-4">
-                <p className="text-sm font-medium text-gray-700">
-                  Click to upload or drag and drop
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                  PNG, JPG, GIF up to 10MB (Max {maxImages} images)
-                </p>
-                {uploadMode === 'minio' && (
-                  <p className="text-xs text-blue-500 mt-1">
-                    Images will be uploaded to MinIO storage
-                  </p>
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+    <div className="space-y-3">
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple
+        accept="image/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        disabled={uploading}
+      />
 
-      {/* Preview Images */}
-      {previewImages.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {previewImages.map((image, index) => (
-            <div
-              key={image.id || index}
-              className="relative group aspect-square rounded-lg overflow-hidden border-2 border-gray-200"
-            >
-              <img
-                src={image.preview || image.url}
-                alt={`Preview ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
-              
-              {/* Main Image Badge */}
-              {mainImageIndex === index && (
-                <div className="absolute top-2 left-2 bg-yellow-500 text-white p-1 rounded-full">
-                  <Star className="w-4 h-4 fill-current" />
-                </div>
-              )}
+      {/* Grid Layout - Images + Add Button */}
+      <div className="grid grid-cols-4 gap-3">
+        {/* Existing Images */}
+        {previewImages.map((image, index) => (
+          <div
+            key={image.id || index}
+            className="relative group aspect-square rounded-xl overflow-hidden bg-gray-50 border-2 border-gray-200 hover:border-gray-300 transition-all"
+          >
+            <img
+              src={image.preview || image.url}
+              alt={`Image ${index + 1}`}
+              className="w-full h-full object-cover"
+            />
+            
+            {/* Main Image Badge */}
+            {mainImageIndex === index && (
+              <div className="absolute top-2 left-2 bg-yellow-500 text-white px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1">
+                <Star className="w-3 h-3 fill-current" />
+                Cover
+              </div>
+            )}
 
-              {/* Overlay Actions */}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 transition-all flex items-center justify-center space-x-2">
-                {mainImageIndex !== index && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleSetMain(index)
-                    }}
-                    className="opacity-0 group-hover:opacity-100 p-2 bg-yellow-500 text-white rounded-full hover:bg-yellow-600 transition-opacity"
-                    title="Set as main image"
-                  >
-                    <Star className="w-4 h-4" />
-                  </button>
-                )}
+            {/* Overlay Actions */}
+            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center gap-2">
+              {mainImageIndex !== index && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    handleRemove(index)
+                    handleSetMain(index)
                   }}
-                  className="opacity-0 group-hover:opacity-100 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-opacity"
-                  title="Remove image"
+                  className="opacity-0 group-hover:opacity-100 p-2 bg-white text-gray-700 rounded-lg hover:bg-gray-100 transition-all shadow-lg"
+                  title="Set as cover"
                 >
-                  <X className="w-4 h-4" />
+                  <Star className="w-4 h-4" />
                 </button>
-              </div>
+              )}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleRemove(index)
+                }}
+                className="opacity-0 group-hover:opacity-100 p-2 bg-white text-red-600 rounded-lg hover:bg-red-50 transition-all shadow-lg"
+                title="Remove"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
+        ))}
 
-      {/* Main Image Indicator */}
-      {previewImages.length > 0 && (
-        <div className="text-sm text-gray-600">
-          <ImageIcon className="w-4 h-4 inline mr-1" />
-          Main image: Image {mainImageIndex + 1} of {previewImages.length}
-        </div>
-      )}
+        {/* Add Image Button */}
+        {previewImages.length < maxImages && (
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            onClick={() => !uploading && fileInputRef.current?.click()}
+            className={`aspect-square rounded-xl border-2 border-dashed border-blue-300 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 transition-all flex flex-col items-center justify-center gap-2 ${
+              uploading ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'
+            }`}
+          >
+            {uploading ? (
+              <>
+                <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
+                <span className="text-xs text-blue-600 font-medium">
+                  {uploadProgress.current}/{uploadProgress.total}
+                </span>
+              </>
+            ) : (
+              <>
+                <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+                <span className="text-xs text-blue-600 font-medium">Add Image</span>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Info Text */}
+      <div className="flex items-center justify-between text-xs text-gray-500">
+        <span>
+          {previewImages.length > 0 && (
+            <>
+              <ImageIcon className="w-3 h-3 inline mr-1" />
+              {previewImages.length} of {maxImages} images
+            </>
+          )}
+        </span>
+        {uploadMode === 'minio' && (
+          <span className="text-blue-500">
+            ☁️ Cloud storage
+          </span>
+        )}
+      </div>
     </div>
   )
 }

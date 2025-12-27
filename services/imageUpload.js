@@ -329,8 +329,15 @@ async function confirmImageUpload(productId, objectKey, variantId = null) {
       object_key: objectKey,
     }
     
+    console.log('🟡 confirmImageUpload - variantId received:', variantId)
+    console.log('🟡 variantId type:', typeof variantId)
+    console.log('🟡 variantId is truthy?', !!variantId)
+    
     if (variantId) {
       body.variant_id = variantId
+      console.log('✅ variant_id ADDED to body:', variantId)
+    } else {
+      console.error('❌ variant_id NOT added to body (variantId is falsy)')
     }
 
     const url = `${API_BASE_URL}/products/${productId}/images`
@@ -338,7 +345,7 @@ async function confirmImageUpload(productId, objectKey, variantId = null) {
     console.log('🔵 Confirm Upload Request:')
     console.log('URL:', url)
     console.log('Headers:', headers)
-    console.log('Body:', body)
+    console.log('Body:', JSON.stringify(body, null, 2))
     console.log('Object Key:', objectKey)
 
     const response = await fetch(url, {
@@ -386,6 +393,12 @@ async function confirmImageUpload(productId, objectKey, variantId = null) {
  * @returns {Promise<Object>} { success, images: [{ image_id, public_url }], errors }
  */
 export async function uploadVariantImages(productId, variantId, files, onProgress = null) {
+  console.log('🟢 uploadVariantImages called')
+  console.log('  productId:', productId)
+  console.log('  variantId:', variantId)
+  console.log('  variantId type:', typeof variantId)
+  console.log('  files:', files.length)
+
   const results = {
     success: true,
     images: [],
@@ -394,6 +407,9 @@ export async function uploadVariantImages(productId, variantId, files, onProgres
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i]
+    
+    console.log(`🟢 Uploading file ${i + 1}/${files.length}: ${file.name}`)
+    console.log('  Passing variantId:', variantId)
     
     if (onProgress) {
       onProgress(i + 1, files.length)

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { createCategory, updateCategory } from '@/services/api'
 
 export default function CategoryForm({ category = null, onSubmit, onCancel }) {
   const router = useRouter()
@@ -78,28 +79,17 @@ export default function CategoryForm({ category = null, onSubmit, onCancel }) {
     setLoading(true)
     try {
       if (onSubmit) {
+        // Use custom onSubmit if provided
         await onSubmit(formData)
       } else {
-        // Default behavior - save to localStorage or API
-        const categories = JSON.parse(localStorage.getItem('admin_categories') || '[]')
+        // Default behavior - call API
         if (category) {
-          const index = categories.findIndex(c => c.category_id === category.category_id)
-          if (index !== -1) {
-            categories[index] = {
-              ...category,
-              ...formData,
-              updated_at: new Date().toISOString(),
-            }
-          }
+          // Update existing category
+          await updateCategory(category.category_id, formData)
         } else {
-          categories.push({
-            category_id: Date.now().toString(),
-            ...formData,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          })
+          // Create new category
+          await createCategory(formData)
         }
-        localStorage.setItem('admin_categories', JSON.stringify(categories))
         router.push('/admin/categories')
       }
     } catch (error) {

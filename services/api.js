@@ -244,3 +244,160 @@ export async function fetchProductById(productIdOrSlug) {
   }
 }
 
+// ============================================
+// CATEGORY API FUNCTIONS
+// ============================================
+
+/**
+ * Create a new category
+ * @param {Object} categoryData - Category data (name, slug, description, is_active)
+ * @returns {Promise<Object>} Created category object
+ */
+export async function createCategory(categoryData) {
+  try {
+    // Get token from localStorage
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(categoryData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success && result.data) {
+      return result.data
+    }
+
+    throw new Error('Invalid response format')
+  } catch (error) {
+    console.error('Error creating category:', error)
+    throw error
+  }
+}
+
+/**
+ * Update an existing category
+ * @param {string} categoryId - Category UUID
+ * @param {Object} categoryData - Updated category data
+ * @returns {Promise<Object>} Updated category object
+ */
+export async function updateCategory(categoryId, categoryData) {
+  try {
+    // Get token from localStorage
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(categoryData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success && result.data) {
+      return result.data
+    }
+
+    throw new Error('Invalid response format')
+  } catch (error) {
+    console.error('Error updating category:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a category
+ * @param {string} categoryId - Category UUID
+ * @returns {Promise<boolean>} Success status
+ */
+export async function deleteCategory(categoryId) {
+  try {
+    // Get token from localStorage
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/categories/${categoryId}`, {
+      method: 'DELETE',
+      headers,
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    return result.success || false
+  } catch (error) {
+    console.error('Error deleting category:', error)
+    throw error
+  }
+}
+
+/**
+ * Fetch a single category by ID or slug
+ * @param {string} categoryIdOrSlug - Category UUID or slug
+ * @returns {Promise<Object>} Category object
+ */
+export async function fetchCategoryById(categoryIdOrSlug) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories/${categoryIdOrSlug}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      cache: 'no-store',
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success && result.data) {
+      return result.data
+    }
+
+    return null
+  } catch (error) {
+    console.error('Error fetching category:', error)
+    return null
+  }
+}
+

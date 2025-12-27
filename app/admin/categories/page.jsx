@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
 import Table from '@/components/admin/Table'
 import ConfirmModal from '@/components/admin/ConfirmModal'
-import { fetchCategories } from '@/services/api'
+import { fetchCategories, deleteCategory } from '@/services/api'
 import { Edit, Trash2, Plus } from 'lucide-react'
 import Link from 'next/link'
 
@@ -22,20 +22,12 @@ export default function CategoriesPage() {
   const loadCategories = async () => {
     setLoading(true)
     try {
-      // Try to fetch from API first
+      // Fetch from API
       const apiCategories = await fetchCategories()
-      if (apiCategories && apiCategories.length > 0) {
-        setCategories(apiCategories)
-      } else {
-        // Fallback to localStorage
-        const stored = JSON.parse(localStorage.getItem('admin_categories') || '[]')
-        setCategories(stored)
-      }
+      setCategories(apiCategories || [])
     } catch (error) {
       console.error('Error loading categories:', error)
-      // Fallback to localStorage
-      const stored = JSON.parse(localStorage.getItem('admin_categories') || '[]')
-      setCategories(stored)
+      setCategories([])
     } finally {
       setLoading(false)
     }
@@ -45,14 +37,20 @@ export default function CategoriesPage() {
     setDeleteModal({ isOpen: true, category })
   }
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deleteModal.category) {
-      const updated = categories.filter(
-        c => c.category_id !== deleteModal.category.category_id
-      )
-      setCategories(updated)
-      localStorage.setItem('admin_categories', JSON.stringify(updated))
-      setDeleteModal({ isOpen: false, category: null })
+      try {
+        // Call API to delete category
+        await deleteCategory(deleteModal.category.category_id)
+        
+        // Reload categories from API
+        await loadCategories()
+        
+        setDeleteModal({ isOpen: false, category: null })
+      } catch (error) {
+        console.error('Error deleting category:', error)
+        alert(`Failed to delete category: ${error.message}`)
+      }
     }
   }
 

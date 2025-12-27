@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import AdminLayout from '@/components/admin/AdminLayout'
 import CategoryForm from '@/components/admin/CategoryForm'
-import { fetchCategories } from '@/services/api'
+import { fetchCategoryById } from '@/services/api'
 
 export default function EditCategoryPage() {
   const params = useParams()
@@ -19,32 +19,18 @@ export default function EditCategoryPage() {
   const loadCategory = async () => {
     setLoading(true)
     try {
-      // Try API first
-      const apiCategories = await fetchCategories()
-      const found = apiCategories.find(c => c.category_id === params.id)
+      // Fetch category by ID from API
+      const categoryData = await fetchCategoryById(params.id)
       
-      if (found) {
-        setCategory(found)
+      if (categoryData) {
+        setCategory(categoryData)
       } else {
-        // Fallback to localStorage
-        const stored = JSON.parse(localStorage.getItem('admin_categories') || '[]')
-        const foundStored = stored.find(c => c.category_id === params.id)
-        if (foundStored) {
-          setCategory(foundStored)
-        } else {
-          router.push('/admin/categories')
-        }
+        // Category not found, redirect to list
+        router.push('/admin/categories')
       }
     } catch (error) {
       console.error('Error loading category:', error)
-      // Fallback to localStorage
-      const stored = JSON.parse(localStorage.getItem('admin_categories') || '[]')
-      const found = stored.find(c => c.category_id === params.id)
-      if (found) {
-        setCategory(found)
-      } else {
-        router.push('/admin/categories')
-      }
+      router.push('/admin/categories')
     } finally {
       setLoading(false)
     }
