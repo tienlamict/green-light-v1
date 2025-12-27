@@ -74,7 +74,12 @@ function ThumbnailUploader({ thumbnail, onChange }) {
   )
 }
 
-export default function ProductFormNew({ product = null, categories = [], onSubmit, onCancel }) {
+import { forwardRef, useImperativeHandle } from 'react'
+
+const ProductFormNew = forwardRef(function ProductFormNew(
+  { product = null, categories = [], onSubmit, onCancel, onNameChange },
+  ref
+) {
   const router = useRouter()
   
   // Product General Information
@@ -220,6 +225,10 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
       // Auto-generate slug from name
       if (name === 'name') {
         updated.slug = generateSlug(value)
+        // Notify parent about name change
+        if (onNameChange) {
+          onNameChange(value || 'Sản Phẩm Mới')
+        }
       }
       
       return updated
@@ -229,6 +238,16 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
       setErrors(prev => ({ ...prev, [name]: '' }))
     }
   }
+
+  // Expose submitForm method to parent via ref
+  useImperativeHandle(ref, () => ({
+    submitForm: () => {
+      const form = document.getElementById('product-form')
+      if (form) {
+        form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }))
+      }
+    }
+  }))
 
   const handleVariantChange = (index, field, value) => {
     setVariants(prev => {
@@ -446,7 +465,7 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form id="product-form" onSubmit={handleSubmit} className="space-y-6">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Left Column - Main Content */}
         <div className="lg:col-span-2 flex flex-col">
@@ -556,36 +575,12 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
 
         {/* Right Column - Sidebar */}
         <div className="flex flex-col space-y-6">
-          {/* Actions */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thao Tác</h2>
-            
-            {errors.submit && (
-              <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded text-sm">
-                {errors.submit}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-              >
-                <Save className="w-5 h-5" />
-                <span>{loading ? 'Đang lưu...' : 'Lưu Sản Phẩm'}</span>
-              </button>
-              
-              <button
-                type="button"
-                onClick={onCancel || (() => router.push('/admin/products'))}
-                className="w-full flex items-center justify-center space-x-2 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-              >
-                <X className="w-5 h-5" />
-                <span>Hủy</span>
-              </button>
+          {/* Error Display */}
+          {errors.submit && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {errors.submit}
             </div>
-          </div>
+          )}
 
           {/* Summary */}
           <div className="bg-white p-6 rounded-lg shadow flex-1 flex flex-col">
@@ -1055,5 +1050,7 @@ export default function ProductFormNew({ product = null, categories = [], onSubm
           </div>
     </form>
   )
-}
+})
+
+export default ProductFormNew
 

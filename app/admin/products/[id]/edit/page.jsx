@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { Save, X } from 'lucide-react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import ProductFormNew from '@/components/admin/ProductFormNew'
 import { fetchProductById, fetchCategories, updateProduct } from '@/services/api'
@@ -12,6 +13,8 @@ export default function EditProductPage() {
   const [product, setProduct] = useState(null)
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
+  const [productName, setProductName] = useState('')
+  const formRef = useRef(null)
 
   useEffect(() => {
     loadData()
@@ -34,6 +37,7 @@ export default function EditProductPage() {
       
       if (productData) {
         setProduct(productData)
+        setProductName(productData.name || 'Chỉnh Sửa Sản Phẩm')
       } else {
         // Fallback to localStorage
         const stored = JSON.parse(localStorage.getItem('admin_products') || '[]')
@@ -81,9 +85,38 @@ export default function EditProductPage() {
     }
   }
 
+  const handleCancel = () => {
+    router.push('/admin/products')
+  }
+
+  const handleSave = () => {
+    if (formRef.current) {
+      formRef.current.submitForm()
+    }
+  }
+
+  const headerActions = (
+    <>
+      <button
+        onClick={handleCancel}
+        className="flex items-center space-x-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+      >
+        <X className="w-4 h-4" />
+        <span>Hủy</span>
+      </button>
+      <button
+        onClick={handleSave}
+        className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+      >
+        <Save className="w-4 h-4" />
+        <span>Lưu Thay Đổi</span>
+      </button>
+    </>
+  )
+
   if (loading) {
     return (
-      <AdminLayout>
+      <AdminLayout headerTitle="Đang tải...">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
         </div>
@@ -96,20 +129,18 @@ export default function EditProductPage() {
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Chỉnh Sửa Sản Phẩm</h1>
-          <p className="mt-1 text-sm text-gray-500">Cập nhật thông tin sản phẩm</p>
-        </div>
-        
-        <ProductFormNew 
-          product={product} 
-          categories={categories} 
-          onSubmit={handleSubmit}
-          onCancel={() => router.push('/admin/products')}
-        />
-      </div>
+    <AdminLayout 
+      headerTitle={productName}
+      headerActions={headerActions}
+    >
+      <ProductFormNew 
+        ref={formRef}
+        product={product} 
+        categories={categories} 
+        onSubmit={handleSubmit}
+        onCancel={handleCancel}
+        onNameChange={setProductName}
+      />
     </AdminLayout>
   )
 }

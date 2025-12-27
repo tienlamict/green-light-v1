@@ -44,6 +44,7 @@ export default function Sidebar() {
         className={`
           fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-50
           transform transition-transform duration-300 ease-in-out
+          flex flex-col
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
@@ -60,8 +61,21 @@ export default function Sidebar() {
           <h1 className="text-xl font-bold">Admin Panel</h1>
         </div>
 
+        {/* User Info */}
+        <div className="p-4 border-b border-gray-800">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0">
+              <span className="text-white font-semibold text-sm">A</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-white truncate">Admin</p>
+              <p className="text-xs text-gray-400 truncate">bopbeo@greenlight.com</p>
+            </div>
+          </div>
+        </div>
+
         {/* Menu Items */}
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 space-y-2 flex-1 overflow-y-auto">
           {menuItems.map((item) => {
             const Icon = item.icon
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
