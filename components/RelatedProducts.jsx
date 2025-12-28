@@ -8,10 +8,13 @@ export default function RelatedProducts({ products }) {
       <h2 className="text-2xl font-bold mb-8">Sản Phẩm Liên Quan</h2>
       
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {products.map((product) => (
+        {products.map((product) => {
+          // Use slug if available, otherwise fallback to id/product_id
+          const productSlug = product.slug || product.id || product.product_id
+          return (
           <Link
-            key={product.id}
-            href={`/products/${product.id}`}
+            key={product.id || product.product_id}
+            href={`/products/${productSlug}`}
             className="group"
           >
             <div className="bg-white rounded-lg overflow-hidden shadow-card hover:shadow-card-hover transition-shadow duration-300">
@@ -59,7 +62,8 @@ export default function RelatedProducts({ products }) {
               </div>
             </div>
           </Link>
-        ))}
+          )
+        })}
       </div>
     </section>
   )

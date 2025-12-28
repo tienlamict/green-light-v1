@@ -10,6 +10,8 @@ const ProductCard = ({ product }) => {
   const [isFavorite, setIsFavorite] = useState(false)
 
   // Support both id and product_id from API
+  // Use slug if available, otherwise fallback to id/product_id
+  const productSlug = product.slug || product.id || product.product_id
   const productId = product.id || product.product_id
   const productPrice = product.price || product.price_min || 0
   const productImage = product.image || product.image_url || product.thumbnail || '/placeholder-image.jpg'
@@ -50,7 +52,7 @@ const ProductCard = ({ product }) => {
       </button>
 
       {/* Product Image - clickable to detail page */}
-      <Link href={`/products/${productId}`}>
+      <Link href={`/products/${productSlug}`}>
         <div className="relative h-64 bg-gray-100 overflow-hidden rounded-t-lg cursor-pointer">
           <Image
             src={productImage}
@@ -63,7 +65,7 @@ const ProductCard = ({ product }) => {
 
       {/* Product Info */}
       <div className="p-4">
-        <Link href={`/products/${productId}`}>
+        <Link href={`/products/${productSlug}`}>
           <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2 group-hover:text-gray-700 transition-colors cursor-pointer">
             {productName}
           </h3>
