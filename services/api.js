@@ -219,7 +219,10 @@ export async function deleteProduct(productId) {
  */
 export async function fetchProductById(productIdOrSlug) {
   try {
-    const response = await fetch(`${API_BASE_URL}/products/${productIdOrSlug}`, {
+    const url = `${API_BASE_URL}/products/${productIdOrSlug}`
+    console.log('🔵 fetchProductById - URL:', url)
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -227,19 +230,26 @@ export async function fetchProductById(productIdOrSlug) {
       cache: 'no-store',
     })
 
+    console.log('🔵 fetchProductById - Response status:', response.status, response.statusText)
+
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('❌ fetchProductById - Error response:', errorText)
       throw new Error(`HTTP error! status: ${response.status}`)
     }
 
     const result = await response.json()
+    console.log('🔵 fetchProductById - Response data:', result)
 
     if (result.success && result.data) {
+      console.log('✅ fetchProductById - Success, returning data')
       return result.data
     }
 
+    console.warn('⚠️ fetchProductById - Response success is false or no data')
     return null
   } catch (error) {
-    console.error('Error fetching product:', error)
+    console.error('❌ fetchProductById - Error:', error)
     return null
   }
 }

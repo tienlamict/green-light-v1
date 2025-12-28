@@ -12,31 +12,83 @@ import { fetchProductById, fetchProducts } from '@/services/api'
 
 /**
  * Map API product data to component format
+ * API Response structure:
+ * {
+ *   product_id, name, slug, short_desc, description,
+ *   price_min, price_max, stock, thumbnail_url, gallery,
+ *   category: { category_id, name, slug, ... },
+ *   variants: [{ variant_id, name, price, stock, images: [{ image_id, url, is_main, sort_order }] }]
+ * }
  */
 function mapProductData(apiProduct) {
-  if (!apiProduct) return null
+  console.log('🔵 mapProductData called with:', apiProduct)
+  if (!apiProduct) {
+    console.warn('⚠️ mapProductData: apiProduct is null/undefined')
+    return null
+  }
 
   // Collect all images from all variants
-  // Sort by is_main and sort_order to show main image first
+  // API structure: variants[].images[] = { image_id, url, is_main, sort_order }
   const allImages = []
-  if (apiProduct.variants && apiProduct.variants.length > 0) {
-    apiProduct.variants.forEach(variant => {
-      if (variant.images && Array.isArray(variant.images)) {
-        variant.images.forEach(img => {
-          // Handle both string and object format
-          const imageUrl = typeof img === 'string' 
-            ? img 
-            : (img.url || img.public_url)
-          
-          if (imageUrl && !allImages.includes(imageUrl)) {
-            allImages.push(imageUrl)
-          }
-        })
+  console.log('🔵 mapProductData: Starting image collection, variants count:', apiProduct.variants?.length)
+  
+  // First, try gallery if available
+  if (apiProduct.gallery && Array.isArray(apiProduct.gallery) && apiProduct.gallery.length > 0) {
+    apiProduct.gallery.forEach(imgUrl => {
+      if (imgUrl && !allImages.includes(imgUrl)) {
+        allImages.push(imgUrl)
       }
     })
   }
 
-  // If no images found, try thumbnail_url
+  // Then collect from variants
+  // API structure: variants[].images[] = { image_id, url, is_main, sort_order }
+  if (apiProduct.variants && Array.isArray(apiProduct.variants)) {
+    // Collect all images from all variants with their metadata
+    const imageEntries = [] // Array of { url, is_main, sort_order, variant_index }
+    
+    apiProduct.variants.forEach((variant, variantIndex) => {
+      if (variant.images && Array.isArray(variant.images)) {
+        variant.images.forEach(img => {
+          // API format: { image_id, url, is_main, sort_order }
+          const imageUrl = img.url
+          if (imageUrl) {
+            imageEntries.push({
+              url: imageUrl,
+              is_main: img.is_main === true,
+              sort_order: img.sort_order !== undefined ? img.sort_order : 999,
+              variant_index: variantIndex
+            })
+          }
+        })
+      }
+    })
+
+    // Sort by sort_order, then is_main (is_main first), then variant_index
+    imageEntries.sort((a, b) => {
+      if (a.sort_order !== b.sort_order) {
+        return a.sort_order - b.sort_order
+      }
+      // If sort_order is same, prioritize is_main
+      if (a.is_main !== b.is_main) {
+        return a.is_main ? -1 : 1
+      }
+      return a.variant_index - b.variant_index
+    })
+
+    // Extract unique URLs (keep first occurrence)
+    const seenUrls = new Set()
+    imageEntries.forEach(entry => {
+      if (!seenUrls.has(entry.url)) {
+        seenUrls.add(entry.url)
+        if (!allImages.includes(entry.url)) {
+          allImages.push(entry.url)
+        }
+      }
+    })
+  }
+
+  // If still no images, use thumbnail_url
   if (allImages.length === 0 && apiProduct.thumbnail_url) {
     allImages.push(apiProduct.thumbnail_url)
   }
@@ -46,46 +98,43 @@ function mapProductData(apiProduct) {
     allImages.push('/placeholder-product.jpg')
   }
 
-  // Get first variant for price
-  const firstVariant = apiProduct.variants && apiProduct.variants.length > 0 
-    ? apiProduct.variants[0] 
-    : null
+  // Use price_min and price_max from API directly
+  const minPrice = apiProduct.price_min || 0
+  const maxPrice = apiProduct.price_max || apiProduct.price_min || 0
+  
+  // Display price: use price_min, show price range if different
+  const displayPrice = minPrice
+  const oldPrice = maxPrice > minPrice ? maxPrice : minPrice * 1.2 // Show maxPrice as oldPrice if range exists
 
-  // Calculate price range
-  let minPrice = firstVariant?.price || 0
-  let maxPrice = firstVariant?.price || 0
-  if (apiProduct.variants && apiProduct.variants.length > 1) {
-    const prices = apiProduct.variants
-      .filter(v => v.price)
-      .map(v => v.price)
-    if (prices.length > 0) {
-      minPrice = Math.min(...prices)
-      maxPrice = Math.max(...prices)
-    }
-  }
-
-  // Format price display
-  const displayPrice = minPrice === maxPrice 
-    ? minPrice 
-    : minPrice // Show min price for now
+  console.log('🔵 mapProductData: Mapped data -', {
+    name: apiProduct.name,
+    imagesCount: allImages.length,
+    price: displayPrice,
+    category: apiProduct.category?.name
+  })
 
   return {
     id: apiProduct.product_id,
     product_id: apiProduct.product_id,
     name: apiProduct.name || '',
-    slug: apiProduct.slug || apiProduct.product_id || '', // Always include slug
+    slug: apiProduct.slug || '',
     description: apiProduct.short_desc || apiProduct.description || '',
     fullDescription: apiProduct.description || apiProduct.short_desc || '',
     price: displayPrice,
-    oldPrice: displayPrice * 1.2, // Default old price (20% higher)
+    price_min: minPrice,
+    price_max: maxPrice,
+    oldPrice: oldPrice,
     rating: 4.5, // Default rating (can be fetched from reviews API later)
     reviewCount: 0, // Default (can be fetched from reviews API later)
     images: allImages,
+    image: allImages[0] || '', // First image for backward compatibility
     category: apiProduct.category?.name || '',
     category_id: apiProduct.category_id,
+    category_slug: apiProduct.category?.slug || '',
     inStock: apiProduct.stock > 0,
     stock: apiProduct.stock || 0,
     variants: apiProduct.variants || [],
+    thumbnail_url: apiProduct.thumbnail_url,
     deliveryTime: {
       international: '12-26 ngày',
       domestic: '3-6 ngày',
@@ -103,7 +152,14 @@ export default function ProductDetailPage() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    loadProduct()
+    if (slug) {
+      console.log('🔵 useEffect triggered, slug:', slug)
+      loadProduct()
+    } else {
+      console.warn('⚠️ useEffect: No slug provided')
+      setError('Slug không hợp lệ')
+      setLoading(false)
+    }
   }, [slug])
 
   const loadProduct = async () => {
@@ -118,15 +174,27 @@ export default function ProductDetailPage() {
       setError(null)
 
       // Fetch product by slug
+      console.log('🔵 Fetching product with slug:', slug)
       const productData = await fetchProductById(slug)
+      console.log('🔵 Product data received:', productData)
       
       if (!productData) {
+        console.error('❌ No product data returned')
         setError('Không tìm thấy sản phẩm')
         setLoading(false)
         return
       }
 
       const mappedProduct = mapProductData(productData)
+      console.log('🔵 Mapped product:', mappedProduct)
+      
+      if (!mappedProduct) {
+        console.error('❌ Failed to map product data')
+        setError('Lỗi khi xử lý dữ liệu sản phẩm')
+        setLoading(false)
+        return
+      }
+      
       setProduct(mappedProduct)
 
       // Load related products (same category, excluding current)
@@ -164,11 +232,21 @@ export default function ProductDetailPage() {
     }
   }
 
+  // Debug logging
+  console.log('🔵 ProductDetailPage Render:', {
+    loading,
+    error,
+    hasProduct: !!product,
+    product: product ? { name: product.name, images: product.images?.length } : null,
+    slug
+  })
+
   if (loading) {
     return (
       <div className="container-custom py-16">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <p className="ml-4 text-gray-600">Đang tải sản phẩm...</p>
         </div>
       </div>
     )
@@ -178,7 +256,8 @@ export default function ProductDetailPage() {
     return (
       <div className="container-custom py-16 text-center">
         <h1 className="text-2xl font-bold mb-4">Không Tìm Thấy Sản Phẩm</h1>
-        <p className="text-gray-600 mb-8">{error || 'Sản phẩm bạn đang tìm kiếm không tồn tại.'}</p>
+        <p className="text-gray-600 mb-4">{error || 'Sản phẩm bạn đang tìm kiếm không tồn tại.'}</p>
+        <p className="text-sm text-gray-500 mb-8">Slug: {slug}</p>
         <a href="/" className="btn-primary inline-block">
           Về Trang Chủ
         </a>
