@@ -1,11 +1,16 @@
 // ProductGallery - main image viewer with thumbnails and lightbox modal
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Image from 'next/image'
 
 export default function ProductGallery({ images, productName }) {
   const [selectedImage, setSelectedImage] = useState(0)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+
+  // Reset selected image when images change
+  useEffect(() => {
+    setSelectedImage(0)
+  }, [images])
 
   const handleThumbnailClick = (index) => {
     setSelectedImage(index)
@@ -26,44 +31,56 @@ export default function ProductGallery({ images, productName }) {
     setSelectedImage((prev) => (prev === images.length - 1 ? 0 : prev + 1))
   }
 
+  if (!images || images.length === 0) {
+    return (
+      <div className="h-full flex flex-col">
+        <div className="relative aspect-square bg-gray-100 flex items-center justify-center">
+          <p className="text-gray-400">Không có hình ảnh</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col">
       {/* Main Image */}
       <div 
-        className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-zoom-in group"
+        className="relative aspect-square bg-white cursor-zoom-in group flex-shrink-0"
         onClick={() => setIsLightboxOpen(true)}
       >
         <img
           src={images[selectedImage]}
           alt={`${productName} - View ${selectedImage + 1}`}
-          className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+          className="w-full h-full object-contain p-8 group-hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-5 transition-opacity" />
       </div>
 
-      {/* Thumbnails */}
-      <div className="flex gap-3 overflow-x-auto pb-2">
-        {images.map((image, index) => (
-          <button
-            key={index}
-            onClick={() => handleThumbnailClick(index)}
-            onKeyDown={(e) => handleKeyDown(e, index)}
-            className={`relative flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition-all ${
-              selectedImage === index
-                ? 'border-black shadow-md'
-                : 'border-gray-200 hover:border-gray-400'
-            }`}
-            aria-label={`Xem ảnh ${index + 1}`}
-          >
-            <img
-              src={image}
-              alt={`${productName} thumbnail ${index + 1}`}
-              className="w-full h-full object-cover"
-              loading="lazy"
-            />
-          </button>
-        ))}
-      </div>
+      {/* Thumbnails - Compact */}
+      {images.length > 1 && (
+        <div className="flex gap-2 p-3 border-t border-gray-200 overflow-x-auto">
+          {images.map((image, index) => (
+            <button
+              key={index}
+              onClick={() => handleThumbnailClick(index)}
+              onKeyDown={(e) => handleKeyDown(e, index)}
+              className={`relative flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                selectedImage === index
+                  ? 'border-gray-900'
+                  : 'border-gray-200 hover:border-gray-400'
+              }`}
+              aria-label={`Xem ảnh ${index + 1}`}
+            >
+              <img
+                src={image}
+                alt={`${productName} thumbnail ${index + 1}`}
+                className="w-full h-full object-contain p-1 bg-white"
+                loading="lazy"
+              />
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Lightbox Modal */}
       {isLightboxOpen && (

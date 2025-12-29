@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
 import Breadcrumbs from '@/components/Breadcrumbs'
 import ProductGallery from '@/components/ProductGallery'
-import ProductInfo from '@/components/ProductInfo'
+import ProductSpecs from '@/components/ProductSpecs'
+import ProductVariantSelector from '@/components/ProductVariantSelector'
 import Tabs from '@/components/Tabs'
 import RelatedProducts from '@/components/RelatedProducts'
 import StickyBuyBar from '@/components/StickyBuyBar'
@@ -143,6 +144,21 @@ function mapProductData(apiProduct) {
   }
 }
 
+// Get images for selected variant, fallback to all product images
+function getVariantImages(variant, product) {
+  if (variant && variant.images && variant.images.length > 0) {
+    // Map variant images (API format: { image_id, url, is_main, sort_order })
+    const variantImages = variant.images
+      .map(img => img.url || img.public_url)
+      .filter(Boolean)
+    if (variantImages.length > 0) {
+      return variantImages
+    }
+  }
+  // Fallback to all product images
+  return product?.images || []
+}
+
 export default function ProductDetailPage() {
   const params = useParams()
   const slug = params.slug
@@ -150,6 +166,7 @@ export default function ProductDetailPage() {
   const [relatedProducts, setRelatedProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedVariant, setSelectedVariant] = useState(null)
 
   useEffect(() => {
     if (slug) {
@@ -196,6 +213,11 @@ export default function ProductDetailPage() {
       }
       
       setProduct(mappedProduct)
+      
+      // Set initial selected variant
+      if (mappedProduct.variants && mappedProduct.variants.length > 0) {
+        setSelectedVariant(mappedProduct.variants[0])
+      }
 
       // Load related products (same category, excluding current)
       if (productData.category_id) {
@@ -271,34 +293,63 @@ export default function ProductDetailPage() {
     { label: product.name },
   ]
 
+  const handleVariantChange = (variant) => {
+    setSelectedVariant(variant)
+    console.log('Selected variant:', variant)
+  }
+
   return (
-    <div className="container-custom py-6">
-      {/* Breadcrumbs */}
-      <Breadcrumbs items={breadcrumbItems} />
+    <div className="bg-gray-50 min-h-screen">
+      <div className="container-custom py-6">
+        {/* Product Title */}
+        <h1 className="text-3xl font-bold text-gray-900 mb-6">{product.name}</h1>
 
-      {/* Main Product Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 mt-6">
-        {/* Left: Product Gallery (60%) */}
-        <div className="lg:col-span-3">
-          <ProductGallery images={product.images} productName={product.name} />
+        {/* Main Product Section - 3 Column Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 mb-8">
+          {/* Column 1: Product Gallery (Larger) */}
+          <div className="lg:col-span-6 mb-4 lg:mb-0">
+            <div className="bg-white border border-gray-200 lg:border-r-0 rounded-lg lg:rounded-l-lg lg:rounded-r-none overflow-hidden h-full">
+              <ProductGallery 
+                images={getVariantImages(selectedVariant, product)} 
+                productName={product.name} 
+              />
+            </div>
+          </div>
+
+          {/* Column 2: Product Specifications */}
+          <div className="lg:col-span-3 mb-3 lg:mb-0">
+            <div className="bg-white border border-gray-200 lg:border-l-0 lg:border-r-0 rounded-lg lg:rounded-none overflow-hidden h-full">
+              <ProductSpecs 
+                product={product} 
+                selectedVariant={selectedVariant}
+              />
+            </div>
+          </div>
+
+          {/* Column 3: Variant Selector */}
+          <div className="lg:col-span-3">
+            <div className="bg-white border border-gray-200 lg:border-l-0 rounded-lg lg:rounded-r-lg lg:rounded-l-none overflow-hidden h-full">
+              <ProductVariantSelector 
+                product={product} 
+                onVariantChange={handleVariantChange}
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Right: Product Info (40%) */}
-        <div className="lg:col-span-2">
-          <ProductInfo product={product} />
-        </div>
+        {/* Tabs Section */}
+        <Tabs product={product} />
+
+        {/* Related Products */}
+        {relatedProducts.length > 0 && (
+          <div className="mt-8">
+            <RelatedProducts products={relatedProducts} />
+          </div>
+        )}
+
+        {/* Sticky Mobile Buy Bar */}
+        <StickyBuyBar price={selectedVariant?.price || product.price_min || product.price} />
       </div>
-
-      {/* Tabs Section */}
-      <Tabs product={product} />
-
-      {/* Related Products */}
-      {relatedProducts.length > 0 && (
-        <RelatedProducts products={relatedProducts} />
-      )}
-
-      {/* Sticky Mobile Buy Bar */}
-      <StickyBuyBar price={product.price} />
     </div>
   )
 }
