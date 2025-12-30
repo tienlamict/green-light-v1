@@ -40,10 +40,20 @@ export default function ProductAttributeFilters({ product, onFilterChange }) {
   }, [product])
 
   const handleAttributeSelect = (attributeKey, value) => {
-    const newSelected = {
-      ...selectedAttributes,
-      [attributeKey]: value
+    // Toggle: if already selected, remove the filter; otherwise, set it
+    const currentValue = selectedAttributes[attributeKey]
+    const isCurrentlySelected = currentValue === value
+    
+    const newSelected = { ...selectedAttributes }
+    
+    if (isCurrentlySelected) {
+      // Remove this filter (toggle off)
+      delete newSelected[attributeKey]
+    } else {
+      // Set this filter (toggle on)
+      newSelected[attributeKey] = value
     }
+    
     setSelectedAttributes(newSelected)
     
     if (onFilterChange) {

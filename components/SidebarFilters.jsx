@@ -9,12 +9,9 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
     filters.max_price || 2000000
   ])
   const [selectedCategory, setSelectedCategory] = useState(filters.category || null)
-  const [selectedColors, setSelectedColors] = useState([])
   const [expandedSections, setExpandedSections] = useState({
     categories: true,
     price: true,
-    color: true,
-    brand: true,
   })
 
   // Sync local state with filters prop
@@ -29,14 +26,6 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
       ])
     }
   }, [filters.category, filters.min_price, filters.max_price])
-
-  const colors = [
-    { name: 'Đen', value: '#000000' },
-    { name: 'Xanh Dương', value: '#1e40af' },
-    { name: 'Xám', value: '#6b7280' },
-  ]
-
-  const brands = ['EcoShine', 'LuxeLights', 'ModernGlow', 'NatureBeam']
 
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
@@ -70,13 +59,6 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
     }
   }
 
-  const handleColorToggle = (colorValue) => {
-    setSelectedColors((prev) =>
-      prev.includes(colorValue)
-        ? prev.filter((c) => c !== colorValue)
-        : [...prev, colorValue]
-    )
-  }
 
 
   return (
@@ -137,7 +119,7 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
       </div>
 
       {/* Price Range */}
-      <div className="border-b border-gray-200 pb-4">
+      <div>
         <div
           className="flex items-center justify-between cursor-pointer mb-4 group"
           onClick={() => toggleSection('price')}
@@ -183,86 +165,6 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
         </div>
       </div>
 
-      {/* Color Filter */}
-      <div className="border-b border-gray-200 pb-4">
-        <div
-          className="flex items-center justify-between cursor-pointer mb-4 group"
-          onClick={() => toggleSection('color')}
-        >
-          <div className="flex items-center space-x-2">
-            <div className="w-1 h-4 bg-black"></div>
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-              Màu Sắc
-            </h3>
-          </div>
-          <div className="transition-transform duration-300 ease-in-out">
-            {expandedSections.color ? (
-              <ChevronUp className="w-4 h-4 text-gray-600" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-gray-600" />
-            )}
-          </div>
-        </div>
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            expandedSections.color ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <div className="flex space-x-3 pt-2">
-            {colors.map((color, index) => (
-              <button
-                key={index}
-                onClick={() => handleColorToggle(color.value)}
-                className={`w-10 h-10 rounded-full border-2 transition-all duration-300 ${
-                  selectedColors.includes(color.value)
-                    ? 'border-gray-900 scale-110 shadow-md'
-                    : 'border-gray-300 hover:scale-105 hover:border-gray-400'
-                }`}
-                style={{ backgroundColor: color.value }}
-                title={color.name}
-                aria-label={color.name}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Brand */}
-      <div>
-        <div
-          className="flex items-center justify-between cursor-pointer mb-4 group"
-          onClick={() => toggleSection('brand')}
-        >
-          <div className="flex items-center space-x-2">
-            <div className="w-1 h-4 bg-black"></div>
-            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">
-              Thương Hiệu
-            </h3>
-          </div>
-          <div className="transition-transform duration-300 ease-in-out">
-            {expandedSections.brand ? (
-              <ChevronUp className="w-4 h-4 text-gray-600" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-gray-600" />
-            )}
-          </div>
-        </div>
-        <div
-          className={`overflow-hidden transition-all duration-300 ease-in-out ${
-            expandedSections.brand ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-          }`}
-        >
-          <ul className="space-y-2 pt-2">
-            {brands.map((brand, index) => (
-              <li key={index}>
-                <button className="text-sm text-gray-600 hover:text-gray-900 hover:translate-x-1 transition-all duration-200 block w-full text-left py-1 px-2 rounded">
-                  {brand}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
     </div>
   )
 }

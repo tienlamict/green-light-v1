@@ -13,12 +13,18 @@ const ProductCard = ({ product }) => {
   // Use slug if available, otherwise fallback to id/product_id
   const productSlug = product.slug || product.id || product.product_id
   const productId = product.id || product.product_id
-  const productPrice = product.price || product.price_min || 0
-  const productImage = product.image || product.image_url || product.thumbnail || '/placeholder-image.jpg'
+  
+  // Get price from API: price_min and price_max
+  const priceMin = product.price_min || 0
+  const priceMax = product.price_max || product.price_min || 0
+  
+  // Get image from API: thumbnail_url (priority)
+  const productImage = product.thumbnail_url || product.image || product.image_url || product.thumbnail || '/placeholder-image.jpg'
   const productName = product.name || product.product_name || 'Unnamed Product'
 
-  const discountPercentage = product.originalPrice || product.price_max
-    ? Math.round(((product.originalPrice || product.price_max) - productPrice) / (product.originalPrice || product.price_max) * 100)
+  // Calculate discount percentage if price_max > price_min
+  const discountPercentage = priceMax > priceMin
+    ? Math.round(((priceMax - priceMin) / priceMax) * 100)
     : 0
 
   return (
@@ -71,14 +77,14 @@ const ProductCard = ({ product }) => {
           </h3>
         </Link>
 
-        {/* Price */}
+        {/* Price - Display min-max range */}
         <div className="flex items-center space-x-2 mb-3">
-          <span className="text-lg font-bold text-red-500">{productPrice.toLocaleString('vi-VN')}đ</span>
-          {(product.originalPrice || product.price_max) && (
-            <span className="text-sm text-gray-400 line-through">
-              {(product.originalPrice || product.price_max).toLocaleString('vi-VN')}đ
-            </span>
-          )}
+          <span className="ml-1 text-base font-normal text-red-500">
+            {priceMin.toLocaleString('vi-VN')}đ
+            {priceMax > priceMin && (
+              <span className="ml-1 text-base font-normal">- {priceMax.toLocaleString('vi-VN')}đ</span>
+            )}
+          </span>
         </div>
 
       </div>
