@@ -186,6 +186,50 @@ export async function updateProduct(productId, productData) {
 }
 
 /**
+ * Update a variant
+ * @param {string} productId - Product UUID
+ * @param {string} variantId - Variant UUID
+ * @param {Object} variantData - Updated variant data
+ * @returns {Promise<Object>} Updated variant object
+ */
+export async function updateVariant(productId, variantId, variantData) {
+  try {
+    // Get token from localStorage
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/products/${productId}/variants/${variantId}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(variantData),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+
+    if (result.success && result.data) {
+      return result.data
+    }
+
+    throw new Error('Invalid response format')
+  } catch (error) {
+    console.error('Error updating variant:', error)
+    throw error
+  }
+}
+
+/**
  * Delete a product
  * @param {string} productId - Product UUID
  * @returns {Promise<boolean>} Success status

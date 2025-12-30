@@ -382,6 +382,7 @@ const ProductFormNew = forwardRef(function ProductFormNew(
         category_id: generalInfo.category_id,
         is_active: true,
         variants: variants.map(v => ({
+          variant_id: v.variant_id, // Include variant_id for updates
           sku: v.sku,
           name: v.variant_name || '',
           attributes: {
@@ -410,8 +411,8 @@ const ProductFormNew = forwardRef(function ProductFormNew(
       }
 
       if (onSubmit) {
-        // Pass both data and variants with images for upload
-        await onSubmit(submitData, variants)
+        // Pass both data, variants with images, and thumbnail for upload
+        await onSubmit(submitData, variants, thumbnail)
       } else {
         // Default behavior - save to localStorage
         const products = JSON.parse(localStorage.getItem('admin_products') || '[]')

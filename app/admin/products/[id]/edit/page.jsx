@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { Save, X } from 'lucide-react'
 import AdminLayout from '@/components/admin/AdminLayout'
 import ProductFormNew from '@/components/admin/ProductFormNew'
-import { fetchProductById, fetchCategories, updateProduct } from '@/services/api'
+import { fetchProductById, fetchCategories, updateProduct, updateVariant } from '@/services/api'
 
 export default function EditProductPage() {
   const params = useParams()
@@ -74,13 +74,104 @@ export default function EditProductPage() {
     }
   }
 
-  const handleSubmit = async (productData, variantsWithImages) => {
+  const handleSubmit = async (productData, variantsWithImages, thumbnail) => {
     try {
-      console.log('🚀 STEP 1: Updating product + variants...')
+      console.log('🚀 STEP 1: Updating product info...')
       
-      // STEP 1: Update product + variants (no images in API call)
-      await updateProduct(product.product_id, productData)
-      console.log('✅ Product updated')
+      const productId = product.product_id
+      
+      // STEP 1: Update product info (without variants)
+      // Extract variants from productData
+      const { variants, ...productInfo } = productData
+      
+      await updateProduct(productId, productInfo)
+      console.log('✅ Product info updated')
+      
+      // STEP 1.1: Update each variant separately
+      if (variants && variants.length > 0) {
+        console.log('🚀 STEP 1.1: Updating variants...')
+        
+        for (let i = 0; i < variants.length; i++) {
+          const variantData = variants[i]
+          const variantId = variantData.variant_id
+          
+          if (!variantId) {
+            console.warn(`⚠️ Variant ${i} has no variant_id, skipping update`)
+            continue
+          }
+          
+          // Prepare variant data for API (no images)
+          const variantUpdateData = {
+            sku: variantData.sku,
+            name: variantData.name || '',
+            attributes: variantData.attributes || {},
+            price: variantData.price || 0,
+            stock: variantData.stock || 0,
+            is_active: variantData.is_active !== undefined ? variantData.is_active : true,
+            // NO IMAGES in variant update
+          }
+          
+          console.log(`📤 Updating variant ${i} (${variantId})...`)
+          
+          try {
+            await updateVariant(productId, variantId, variantUpdateData)
+            console.log(`✅ Variant ${i} updated`)
+          } catch (variantError) {
+            console.error(`❌ Error updating variant ${i}:`, variantError)
+            // Continue with other variants even if one fails
+          }
+        }
+        
+        console.log('✅ STEP 1.1 Complete: All variants updated')
+      }
+      
+      // STEP 1.5: Upload thumbnail nếu có (base64 hoặc File mới)
+      if (thumbnail) {
+        const thumbnailUrlValue = typeof thumbnail === 'string' ? thumbnail : thumbnail.url
+        const needsUpload = 
+          (thumbnailUrlValue && thumbnailUrlValue.startsWith('data:image')) || // Base64
+          (thumbnail && thumbnail.file instanceof File) // File object
+        
+        if (needsUpload) {
+          console.log('📤 Uploading new thumbnail...')
+          try {
+            let file = null
+            
+            if (thumbnail.file instanceof File) {
+              file = thumbnail.file
+            } else if (thumbnailUrlValue && thumbnailUrlValue.startsWith('data:image')) {
+              // Convert base64 to File
+              const response = await fetch(thumbnailUrlValue)
+              const blob = await response.blob()
+              const fileName = `thumbnail-${Date.now()}.${blob.type.split('/')[1] || 'jpg'}`
+              file = new File([blob], fileName, { type: blob.type })
+            }
+            
+            if (file) {
+              const { uploadProductImage } = await import('@/services/imageUpload')
+              const result = await uploadProductImage(productId, file, null)
+              
+              if (result.success) {
+                const thumbnailUrl = result.public_url
+                console.log('✅ Thumbnail uploaded:', thumbnailUrl)
+                
+                // Update product with new thumbnail_url
+                const { updateProduct } = await import('@/services/api')
+                await updateProduct(productId, {
+                  ...productData,
+                  thumbnail_url: thumbnailUrl
+                })
+                console.log('✅ Product updated with new thumbnail_url')
+              } else {
+                console.error('⚠️ Failed to upload thumbnail:', result.error)
+              }
+            }
+          } catch (uploadError) {
+            console.error('❌ Error uploading thumbnail:', uploadError)
+            // Continue even if thumbnail upload fails
+          }
+        }
+      }
       
       // STEP 2: Upload new images for variants (if any)
       // For edit mode, variants already have variant_id

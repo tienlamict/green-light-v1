@@ -36,7 +36,7 @@ export default function CreateProductPage() {
     }
   }
 
-  const handleSubmit = async (productData, variantsWithImages) => {
+  const handleSubmit = async (productData, variantsWithImages, thumbnail) => {
     try {
       console.log('🚀 STEP 1: Creating product + variants (no images)...')
       
@@ -46,6 +46,74 @@ export default function CreateProductPage() {
       
       if (!createdProduct || !createdProduct.product_id) {
         throw new Error('Product creation failed - no product_id returned')
+      }
+      
+      const productId = createdProduct.product_id
+      
+      // STEP 1.5: Upload thumbnail nếu có (base64 hoặc File)
+      let thumbnailUrl = productData.thumbnail_url || ''
+      if (thumbnail) {
+        const thumbnailUrlValue = typeof thumbnail === 'string' ? thumbnail : thumbnail.url
+        if (thumbnailUrlValue && thumbnailUrlValue.startsWith('data:image')) {
+          // Thumbnail là base64 - cần upload
+          console.log('📤 Uploading thumbnail...')
+          try {
+            // Convert base64 to File
+            const response = await fetch(thumbnailUrlValue)
+            const blob = await response.blob()
+            const fileName = `thumbnail-${Date.now()}.${blob.type.split('/')[1] || 'jpg'}`
+            const file = new File([blob], fileName, { type: blob.type })
+            
+            // Upload thumbnail
+            const { uploadProductImage } = await import('@/services/imageUpload')
+            const result = await uploadProductImage(productId, file, null) // null = no variant_id for thumbnail
+            
+            if (result.success) {
+              thumbnailUrl = result.public_url
+              console.log('✅ Thumbnail uploaded:', thumbnailUrl)
+              
+              // Update product with thumbnail_url
+              const { updateProduct } = await import('@/services/api')
+              await updateProduct(productId, {
+                ...productData,
+                thumbnail_url: thumbnailUrl
+              })
+              console.log('✅ Product updated with thumbnail_url')
+            } else {
+              console.error('⚠️ Failed to upload thumbnail:', result.error)
+            }
+          } catch (uploadError) {
+            console.error('❌ Error uploading thumbnail:', uploadError)
+            // Continue even if thumbnail upload fails
+          }
+        } else if (thumbnailUrlValue && !thumbnailUrlValue.startsWith('data:image')) {
+          // Thumbnail đã có URL từ server
+          thumbnailUrl = thumbnailUrlValue
+        } else if (thumbnail.file instanceof File) {
+          // Thumbnail là File object
+          console.log('📤 Uploading thumbnail (File object)...')
+          try {
+            const { uploadProductImage } = await import('@/services/imageUpload')
+            const result = await uploadProductImage(productId, thumbnail.file, null)
+            
+            if (result.success) {
+              thumbnailUrl = result.public_url
+              console.log('✅ Thumbnail uploaded:', thumbnailUrl)
+              
+              // Update product with thumbnail_url
+              const { updateProduct } = await import('@/services/api')
+              await updateProduct(productId, {
+                ...productData,
+                thumbnail_url: thumbnailUrl
+              })
+              console.log('✅ Product updated with thumbnail_url')
+            } else {
+              console.error('⚠️ Failed to upload thumbnail:', result.error)
+            }
+          } catch (uploadError) {
+            console.error('❌ Error uploading thumbnail:', uploadError)
+          }
+        }
       }
       
       // STEP 2: Upload images cho từng variant (nếu có)
