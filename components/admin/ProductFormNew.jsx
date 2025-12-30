@@ -365,27 +365,19 @@ const ProductFormNew = forwardRef(function ProductFormNew(
       // Tính tổng stock từ các variants
       const totalStock = variants.reduce((sum, v) => sum + (parseInt(v.stock) || 0), 0)
       
-      // Lấy thumbnail URL (ưu tiên thumbnail upload riêng, fallback về ảnh variant đầu tiên)
+      // Lấy thumbnail URL (chỉ lấy nếu đã upload, không lấy base64)
       let thumbnailUrl = ''
       if (thumbnail && thumbnail.url && !thumbnail.url.startsWith('data:image')) {
         thumbnailUrl = thumbnail.url
-      } else if (variants.length > 0 && variants[0].images && variants[0].images.length > 0) {
-        for (const img of variants[0].images) {
-          const url = typeof img === 'string' ? img : img.url
-          if (url && !url.startsWith('data:image')) {
-            thumbnailUrl = url
-            break
-          }
-        }
       }
       
-      // Map data theo API structure
+      // STEP 1: Tạo product + variants (KHÔNG GỬI IMAGES)
       const submitData = {
         name: generalInfo.name,
         slug: generalInfo.slug,
         short_desc: generalInfo.short_desc || '',
         description: generalInfo.description || '',
-        stock: totalStock, // Tổng stock của các variants
+        stock: totalStock,
         thumbnail_url: thumbnailUrl,
         category_id: generalInfo.category_id,
         is_active: true,
@@ -413,26 +405,13 @@ const ProductFormNew = forwardRef(function ProductFormNew(
           price: parseFloat(v.price) || 0,
           stock: parseInt(v.stock) || 0,
           is_active: true,
-          images: (v.images || [])
-            .filter(img => {
-              // Filter out base64 images (preview mode)
-              const url = typeof img === 'string' ? img : img.url
-              return url && !url.startsWith('data:image')
-            })
-            .map((img, index) => {
-              const url = typeof img === 'string' ? img : img.url
-              return {
-                image_id: img.image_id || img.id || `img-${Date.now()}-${index}`,
-                url: url,
-                is_main: index === 0, // Ảnh đầu tiên là main
-                sort_order: index
-              }
-            })
+          // KHÔNG GỬI IMAGES Ở BƯỚC NÀY
         })),
       }
 
       if (onSubmit) {
-        await onSubmit(submitData)
+        // Pass both data and variants with images for upload
+        await onSubmit(submitData, variants)
       } else {
         // Default behavior - save to localStorage
         const products = JSON.parse(localStorage.getItem('admin_products') || '[]')

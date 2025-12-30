@@ -74,13 +74,88 @@ export default function EditProductPage() {
     }
   }
 
-  const handleSubmit = async (productData) => {
+  const handleSubmit = async (productData, variantsWithImages) => {
     try {
+      console.log('🚀 STEP 1: Updating product + variants...')
+      
+      // STEP 1: Update product + variants (no images in API call)
       await updateProduct(product.product_id, productData)
+      console.log('✅ Product updated')
+      
+      // STEP 2: Upload new images for variants (if any)
+      // For edit mode, variants already have variant_id
+      if (variantsWithImages && variantsWithImages.length > 0) {
+        console.log('🚀 STEP 2: Uploading new images for variants...')
+        
+        for (let i = 0; i < variantsWithImages.length; i++) {
+          const variantData = variantsWithImages[i]
+          const variantId = variantData.variant_id
+          
+          if (!variantId) {
+            console.warn(`⚠️ Variant ${i} has no variant_id, skipping image upload`)
+            continue
+          }
+          
+          // Filter and convert images to File objects for upload
+          const imagesToUpload = []
+          
+          for (const img of (variantData.images || [])) {
+            // Case 1: Already has a File object (new upload)
+            if (img.file instanceof File) {
+              imagesToUpload.push(img.file)
+              continue
+            }
+            
+            // Case 2: Base64 data URL - convert to File
+            const url = typeof img === 'string' ? img : img.url
+            if (url && url.startsWith('data:image')) {
+              try {
+                const response = await fetch(url)
+                const blob = await response.blob()
+                const fileName = `image-${Date.now()}-${imagesToUpload.length}.${blob.type.split('/')[1] || 'jpg'}`
+                const file = new File([blob], fileName, { type: blob.type })
+                imagesToUpload.push(file)
+              } catch (err) {
+                console.error('Failed to convert base64 to File:', err)
+              }
+            }
+            
+            // Case 3: Already uploaded (has URL from server) - skip
+          }
+          
+          if (imagesToUpload.length === 0) {
+            console.log(`ℹ️ Variant ${i} (${variantId}) has no new images to upload`)
+            continue
+          }
+          
+          console.log(`📤 Uploading ${imagesToUpload.length} new images for variant ${i} (${variantId})...`)
+          
+          const { uploadVariantImages } = await import('@/services/imageUpload')
+          
+          try {
+            const result = await uploadVariantImages(
+              product.product_id,
+              variantId,
+              imagesToUpload
+            )
+            
+            if (result.success) {
+              console.log(`✅ Uploaded ${result.images.length} images for variant ${i}`)
+            } else {
+              console.error(`⚠️ Some images failed for variant ${i}:`, result.errors)
+            }
+          } catch (uploadError) {
+            console.error(`❌ Error uploading images for variant ${i}:`, uploadError)
+          }
+        }
+        
+        console.log('✅ STEP 2 Complete: All new images uploaded')
+      }
+      
       alert('Product updated successfully!')
       router.push('/admin/products')
     } catch (error) {
-      console.error('Error updating product:', error)
+      console.error('❌ Error updating product:', error)
       throw error
     }
   }
