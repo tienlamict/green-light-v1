@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react'
 const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
   const [priceRange, setPriceRange] = useState([
     filters.min_price || 0,
-    filters.max_price || 2000000
+    filters.max_price || 1000000
   ])
   const [selectedCategory, setSelectedCategory] = useState(filters.category || null)
   const [expandedSections, setExpandedSections] = useState({
@@ -22,7 +22,7 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
     if (filters.min_price !== undefined || filters.max_price !== undefined) {
       setPriceRange([
         filters.min_price || 0,
-        filters.max_price || 2000000
+        filters.max_price || 1000000
       ])
     }
   }, [filters.category, filters.min_price, filters.max_price])
@@ -47,10 +47,12 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
     }
   }
 
-  const handlePriceRangeChange = (newMaxPrice) => {
-    const newRange = [priceRange[0], newMaxPrice]
+  const handlePriceRangeChange = (type, value) => {
+    const newMaxPrice = parseInt(value)
+    const newRange = [priceRange[0], newMaxPrice] // min always 0, max is adjustable
     setPriceRange(newRange)
-    // Update API filters with price range
+    // Update API filters with price range - filter based on product price_min
+    // Products with price_min within the range will be displayed
     if (onFilterChange) {
       onFilterChange({
         min_price: newRange[0],
@@ -147,10 +149,10 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
             <input
               type="range"
               min="0"
-              max="2000000"
+              max="1000000"
               step="10000"
               value={priceRange[1]}
-              onChange={(e) => handlePriceRangeChange(parseInt(e.target.value))}
+              onChange={(e) => handlePriceRangeChange('max', e.target.value)}
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gray-900 transition-all duration-200"
             />
             <div className="flex items-center justify-between text-sm">

@@ -36,9 +36,34 @@ export default function HomePage() {
     const loadProducts = async () => {
       setLoading(true)
       try {
-        const result = await fetchProducts(apiFilters)
-        setProducts(result.products || [])
-        setMeta(result.meta || {})
+        // Remove price filters from API call - we'll filter on client side
+        const { min_price, max_price, ...apiFiltersWithoutPrice } = apiFilters
+        const result = await fetchProducts(apiFiltersWithoutPrice)
+        
+        // Filter products by price_min on client side
+        let filteredProducts = result.products || []
+        
+        if (min_price !== undefined && min_price !== null) {
+          filteredProducts = filteredProducts.filter(product => {
+            const productPriceMin = product.price_min || 0
+            return productPriceMin >= min_price
+          })
+        }
+        
+        if (max_price !== undefined && max_price !== null) {
+          filteredProducts = filteredProducts.filter(product => {
+            const productPriceMin = product.price_min || 0
+            return productPriceMin <= max_price
+          })
+        }
+        
+        setProducts(filteredProducts)
+        // Update meta to reflect filtered count
+        setMeta({
+          ...result.meta,
+          total: filteredProducts.length,
+          filtered: true
+        })
       } catch (error) {
         console.error('Error loading products:', error)
         setProducts([])
