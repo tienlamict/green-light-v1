@@ -2,6 +2,10 @@
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080/api/v1'
 
+// ============================================
+// CATEGORY IMAGE UPLOAD
+// ============================================
+
 /**
  * Get content type from file extension
  * Backend validation accepts: image/jpeg, image/jpg, image/png, image/webp
@@ -465,6 +469,203 @@ export async function deleteProductImage(productId, imageId) {
     return result.success || false
   } catch (error) {
     console.error('Error deleting image:', error)
+    return false
+  }
+}
+
+// ============================================
+// CATEGORY IMAGE UPLOAD FUNCTIONS
+// ============================================
+
+/**
+ * Upload category icon using MinIO presigned URL flow
+ * @param {string} categoryId - Category UUID
+ * @param {File} file - Image file to upload
+ * @returns {Promise<Object>} { success, public_url, image_id }
+ */
+export async function uploadCategoryIcon(categoryId, file) {
+  try {
+    // Get content type that will be used for signing
+    const fileExtension = file.name.split('.').pop().toLowerCase()
+    const contentType = getContentType(fileExtension)
+    
+    // Step 1: Get presigned URL from backend
+    const presignResponse = await getCategoryPresignedUrl(categoryId, file.name)
+    
+    if (!presignResponse.success) {
+      throw new Error(presignResponse.error || 'Failed to get presigned URL')
+    }
+
+    const { upload_url, public_url, object_key } = presignResponse.data
+
+    // Step 2: Upload file directly to MinIO using presigned URL
+    const uploadSuccess = await uploadToMinIO(upload_url, file, contentType)
+    
+    if (!uploadSuccess) {
+      throw new Error('Failed to upload to MinIO')
+    }
+
+    // Step 3: Confirm upload with backend (save metadata to MySQL)
+    const confirmResponse = await confirmCategoryImageUpload(categoryId, object_key)
+    
+    if (!confirmResponse.success) {
+      throw new Error('Failed to confirm image upload')
+    }
+
+    return {
+      success: true,
+      public_url,
+      icon_url: public_url
+    }
+  } catch (error) {
+    console.error('Error uploading category icon:', error)
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Get presigned URL for category icon upload
+ * @param {string} categoryId - Category UUID
+ * @param {string} fileName - Original file name
+ * @returns {Promise<Object>}
+ */
+async function getCategoryPresignedUrl(categoryId, fileName) {
+  try {
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const fileExtension = fileName.split('.').pop().toLowerCase()
+    const contentType = getContentType(fileExtension)
+    
+    const body = {
+      content_type: contentType,
+      extension: fileExtension,
+    }
+
+    const url = `${API_BASE_URL}/categories/${categoryId}/icon/presign`
+    
+    console.log('🔵 Category Presign Request:', { url, body })
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+
+    console.log('🔵 Category Presign Response Status:', response.status)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('🔴 Category Presign Error:', errorData)
+      throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log('🔵 Category Presign Success:', result)
+
+    return result
+  } catch (error) {
+    console.error('Error getting category presigned URL:', error)
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Confirm category icon upload with backend
+ * @param {string} categoryId - Category UUID
+ * @param {string} objectKey - MinIO object key
+ * @returns {Promise<Object>}
+ */
+async function confirmCategoryImageUpload(categoryId, objectKey) {
+  try {
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const body = {
+      object_key: objectKey
+    }
+
+    const url = `${API_BASE_URL}/categories/${categoryId}/icon`
+    
+    console.log('🔵 Category Confirm Request:', { url, body })
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body),
+    })
+
+    console.log('🔵 Category Confirm Response Status:', response.status)
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      console.error('🔴 Category Confirm Error:', errorData)
+      throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log('🔵 Category Confirm Success:', result)
+
+    return result
+  } catch (error) {
+    console.error('Error confirming category image upload:', error)
+    return {
+      success: false,
+      error: error.message
+    }
+  }
+}
+
+/**
+ * Delete category icon
+ * @param {string} categoryId - Category UUID
+ * @returns {Promise<boolean>} Success status
+ */
+export async function deleteCategoryIcon(categoryId) {
+  try {
+    const token = localStorage.getItem('auth_token')
+    
+    const headers = {
+      'Content-Type': 'application/json',
+    }
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`
+    }
+
+    const response = await fetch(`${API_BASE_URL}/categories/${categoryId}/icon`, {
+      method: 'DELETE',
+      headers,
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    return result.success || false
+  } catch (error) {
+    console.error('Error deleting category icon:', error)
     return false
   }
 }
