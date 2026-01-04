@@ -89,7 +89,7 @@ export default function CategoryForm({ category = null, onSubmit, onCancel }) {
     if (category?.category_id) {
       setUploadingIcon(true)
       try {
-        const result = await uploadCategoryIcon(category.category_id, file)
+        const result = await uploadCategoryIcon(category.category_id, file, updateCategory)
         if (result.success) {
           setFormData(prev => ({ ...prev, icon_url: result.icon_url }))
           setIconPreview(result.icon_url)
@@ -115,7 +115,9 @@ export default function CategoryForm({ category = null, onSubmit, onCancel }) {
     if (category?.category_id && formData.icon_url) {
       // If editing and has existing icon, delete from server
       try {
-        await deleteCategoryIcon(category.category_id)
+        await deleteCategoryIcon(category.category_id, updateCategory)
+        setFormData(prev => ({ ...prev, icon_url: '' }))
+        setIconPreview(null)
       } catch (error) {
         console.error('Error deleting icon:', error)
       }
@@ -174,7 +176,7 @@ export default function CategoryForm({ category = null, onSubmit, onCancel }) {
           // If new category and has icon file, upload it
           if (savedCategory?.category_id && formData.iconFile) {
             try {
-              const uploadResult = await uploadCategoryIcon(savedCategory.category_id, formData.iconFile)
+              const uploadResult = await uploadCategoryIcon(savedCategory.category_id, formData.iconFile, updateCategory)
               if (!uploadResult.success) {
                 console.error('Failed to upload icon:', uploadResult.error)
               }

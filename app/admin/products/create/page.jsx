@@ -50,16 +50,45 @@ export default function CreateProductPage() {
       
       const productId = createdProduct.product_id
       
-      // STEP 1.5: Upload thumbnail nếu có (base64 hoặc File)
+      // STEP 1.5: Upload thumbnail nếu có
       let thumbnailUrl = productData.thumbnail_url || ''
       if (thumbnail) {
-        const thumbnailUrlValue = typeof thumbnail === 'string' ? thumbnail : thumbnail.url
-        if (thumbnailUrlValue && thumbnailUrlValue.startsWith('data:image')) {
-          // Thumbnail là base64 - cần upload
-          console.log('📤 Uploading thumbnail...')
+        // Priority 1: Use File object if available (most reliable)
+        if (thumbnail.file && thumbnail.file instanceof File) {
+          console.log('📤 Uploading thumbnail (File object)...')
+          try {
+            const { uploadProductImage } = await import('@/services/imageUpload')
+            const result = await uploadProductImage(productId, thumbnail.file, null) // null = no variant_id for thumbnail
+            
+            if (result.success) {
+              thumbnailUrl = result.public_url
+              console.log('✅ Thumbnail uploaded:', thumbnailUrl)
+              
+              // Update product with thumbnail_url
+              const { updateProduct } = await import('@/services/api')
+              await updateProduct(productId, {
+                thumbnail_url: thumbnailUrl
+              })
+              console.log('✅ Product updated with thumbnail_url')
+            } else {
+              console.error('⚠️ Failed to upload thumbnail:', result.error)
+            }
+          } catch (uploadError) {
+            console.error('❌ Error uploading thumbnail:', uploadError)
+            // Continue even if thumbnail upload fails
+          }
+        } 
+        // Priority 2: If thumbnail.url is already a server URL (not base64), use it directly
+        else if (thumbnail.url && !thumbnail.url.startsWith('data:image')) {
+          thumbnailUrl = thumbnail.url
+          console.log('✅ Using existing thumbnail URL:', thumbnailUrl)
+        }
+        // Priority 3: If thumbnail.url is base64, convert and upload
+        else if (thumbnail.url && thumbnail.url.startsWith('data:image')) {
+          console.log('📤 Uploading thumbnail (base64)...')
           try {
             // Convert base64 to File
-            const response = await fetch(thumbnailUrlValue)
+            const response = await fetch(thumbnail.url)
             const blob = await response.blob()
             const fileName = `thumbnail-${Date.now()}.${blob.type.split('/')[1] || 'jpg'}`
             const file = new File([blob], fileName, { type: blob.type })
@@ -75,7 +104,6 @@ export default function CreateProductPage() {
               // Update product with thumbnail_url
               const { updateProduct } = await import('@/services/api')
               await updateProduct(productId, {
-                ...productData,
                 thumbnail_url: thumbnailUrl
               })
               console.log('✅ Product updated with thumbnail_url')
@@ -85,33 +113,6 @@ export default function CreateProductPage() {
           } catch (uploadError) {
             console.error('❌ Error uploading thumbnail:', uploadError)
             // Continue even if thumbnail upload fails
-          }
-        } else if (thumbnailUrlValue && !thumbnailUrlValue.startsWith('data:image')) {
-          // Thumbnail đã có URL từ server
-          thumbnailUrl = thumbnailUrlValue
-        } else if (thumbnail.file instanceof File) {
-          // Thumbnail là File object
-          console.log('📤 Uploading thumbnail (File object)...')
-          try {
-            const { uploadProductImage } = await import('@/services/imageUpload')
-            const result = await uploadProductImage(productId, thumbnail.file, null)
-            
-            if (result.success) {
-              thumbnailUrl = result.public_url
-              console.log('✅ Thumbnail uploaded:', thumbnailUrl)
-              
-              // Update product with thumbnail_url
-              const { updateProduct } = await import('@/services/api')
-              await updateProduct(productId, {
-                ...productData,
-                thumbnail_url: thumbnailUrl
-              })
-              console.log('✅ Product updated with thumbnail_url')
-            } else {
-              console.error('⚠️ Failed to upload thumbnail:', result.error)
-            }
-          } catch (uploadError) {
-            console.error('❌ Error uploading thumbnail:', uploadError)
           }
         }
       }

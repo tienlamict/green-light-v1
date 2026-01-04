@@ -2,6 +2,7 @@
 
 import { ChevronDown, ChevronUp, ChevronRight } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 
 const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
   const [priceRange, setPriceRange] = useState([
@@ -96,18 +97,33 @@ const SidebarFilters = ({ categories = [], filters = {}, onFilterChange }) => {
                 <li key={category.category_id}>
                   <button
                     onClick={() => handleCategoryClick(category)}
-                    className={`text-sm w-full text-left flex items-center space-x-2 py-1 px-2 rounded transition-all duration-200 ${
+                    className={`text-sm w-full text-left flex items-center space-x-3 py-2 px-2 rounded transition-all duration-200 ${
                       selectedCategory === category.category_id
                         ? 'text-black font-semibold bg-gray-50'
                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                     }`}
                   >
+                    {/* Category Icon */}
+                    {category.icon_url && (
+                      <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+                        <Image
+                          src={category.icon_url}
+                          alt={category.name}
+                          width={20}
+                          height={20}
+                          className="object-contain"
+                          style={{ background: 'transparent' }}
+                        />
+                      </div>
+                    )}
+                    {/* Category Name */}
+                    <span className="flex-1">
+                      {category.name}
+                    </span>
+                    {/* Selected Indicator */}
                     {selectedCategory === category.category_id && (
                       <ChevronRight className="w-3 h-3 flex-shrink-0" />
                     )}
-                    <span className={selectedCategory === category.category_id ? 'ml-0' : 'ml-5'}>
-                      {category.name}
-                    </span>
                   </button>
                 </li>
               ))
