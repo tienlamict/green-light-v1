@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Save, X } from 'lucide-react'
 import AdminLayout from '@/components/admin/AdminLayout'
-import ProductFormNew from '@/components/admin/ProductFormNew'
+import ProductForm from '@/components/admin/ProductForm'
 import { fetchProductById, fetchCategories, updateProduct, updateVariant } from '@/services/api'
 
 export default function EditProductPage() {
@@ -299,7 +299,7 @@ export default function EditProductPage() {
       headerTitle={productName}
       headerActions={headerActions}
     >
-      <ProductFormNew 
+      <ProductForm 
         ref={formRef}
         product={product} 
         categories={categories} 
