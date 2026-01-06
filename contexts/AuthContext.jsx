@@ -12,13 +12,22 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     // Check if user is logged in on mount
+    // Must have both token and user data to be considered authenticated
+    const storedToken = localStorage.getItem('auth_token')
     const storedUser = localStorage.getItem('admin_user')
-    if (storedUser) {
+    
+    if (storedToken && storedUser) {
       try {
         setUser(JSON.parse(storedUser))
       } catch (e) {
+        // Invalid user data, clear everything
         localStorage.removeItem('admin_user')
+        localStorage.removeItem('auth_token')
       }
+    } else {
+      // Missing token or user data, clear everything
+      if (storedUser) localStorage.removeItem('admin_user')
+      if (storedToken) localStorage.removeItem('auth_token')
     }
     setLoading(false)
   }, [])
@@ -67,11 +76,22 @@ export function AuthProvider({ children }) {
     router.push('/admin/login')
   }
 
+  // Handle 401 unauthorized errors - auto logout
+  const handleUnauthorized = () => {
+    console.warn('Unauthorized access detected, logging out...')
+    logout()
+  }
+
+  // Check both user and token exist for authentication
+  const token = typeof window !== 'undefined' ? localStorage.getItem('auth_token') : null
+  const isAuthenticated = !!(user && token)
+
   const value = {
     user,
     login,
     logout,
-    isAuthenticated: !!user,
+    handleUnauthorized,
+    isAuthenticated,
     loading,
   }
 
