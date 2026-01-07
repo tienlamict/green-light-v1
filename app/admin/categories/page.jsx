@@ -57,31 +57,25 @@ export default function CategoriesPage() {
 
   const columns = [
     {
-      key: 'icon_url',
-      label: 'Icon',
-      render: (value) => (
-        <div className="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center overflow-hidden">
-          {value ? (
-            <Image
-              src={value}
-              alt="Category icon"
-              width={48}
-              height={48}
-              className="object-contain"
-            />
-          ) : (
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          )}
-        </div>
-      ),
-    },
-    {
       key: 'name',
       label: 'Name',
       render: (value, row) => (
-        <div className="font-medium text-gray-900">{value}</div>
+        <div className="font-medium text-gray-900 flex items-center space-x-3">
+          {/* Category Icon */}
+          {row.icon_url && (
+            <div className="w-5 h-5 flex-shrink-0 flex items-center justify-center">
+              <Image
+                src={row.icon_url}
+                alt={value}
+                width={20}
+                height={20}
+                className="object-contain"
+                style={{ background: 'transparent' }}
+              />
+            </div>
+          )}
+          <span>{value}</span>
+        </div>
       ),
     },
     {

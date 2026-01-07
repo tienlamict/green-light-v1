@@ -12,15 +12,8 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false)
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
-  const { login, isAuthenticated, loading: authLoading } = useAuth()
+  const { login } = useAuth()
   const router = useRouter()
-
-  useEffect(() => {
-    // Only redirect if auth check is complete AND user is authenticated
-    if (!authLoading && isAuthenticated) {
-      router.push('/admin')
-    }
-  }, [isAuthenticated, authLoading, router])
 
   const validate = () => {
     const newErrors = {}
