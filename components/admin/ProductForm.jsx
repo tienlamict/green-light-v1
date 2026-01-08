@@ -673,7 +673,7 @@ const ProductForm = forwardRef(function ProductForm(
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900 flex items-center">
             <div className="w-1 h-6 bg-green-600 mr-3"></div>
-            Biến Thể Sản Phẩm
+            Các mã sản phẩm
           </h2>
           <button
             type="button"
@@ -681,7 +681,7 @@ const ProductForm = forwardRef(function ProductForm(
             className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
           >
             <Plus className="w-4 h-4" />
-            <span>Thêm Biến Thể</span>
+            <span>Thêm mã</span>
           </button>
         </div>
 
@@ -700,7 +700,7 @@ const ProductForm = forwardRef(function ProductForm(
                       ) : (
                         <ChevronDown className="w-4 h-4" />
                       )}
-                      <span>Biến Thể #{index + 1}</span>
+                      <span>Mã #{index + 1}</span>
                       {variant.variant_name && <span className="text-gray-500">- {variant.variant_name}</span>}
                       {!variant.variant_name && variant.sku && <span className="text-gray-500">- {variant.sku}</span>}
                     </button>
@@ -721,7 +721,7 @@ const ProductForm = forwardRef(function ProductForm(
                         {/* Tên Biến Thể */}
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Tên Biến Thể Sản Phẩm
+                            Mã sản phẩm
                           </label>
                           <input
                             type="text"
@@ -1035,7 +1035,7 @@ const ProductForm = forwardRef(function ProductForm(
                       {/* Hình Ảnh Biến Thể */}
                       <div className="pt-4 border-t border-gray-200">
                         <label className="block text-sm font-medium text-gray-700 mb-3">
-                          Hình Ảnh Biến Thể
+                          Hình ảnh mã sản phẩm
                           {(() => {
                             console.log(`🖼️ ImageUploader for variant ${index}:`, {
                               variantId: variant.variant_id,
@@ -1055,7 +1055,7 @@ const ProductForm = forwardRef(function ProductForm(
                           variantId={variant.variant_id}
                         />
                         <p className="mt-2 text-xs text-gray-500">
-                          Tối đa 5 hình ảnh cho biến thể này. Ảnh đầu tiên sẽ là ảnh đại diện.
+                          Tối đa 5 hình ảnh cho mã này. Ảnh đầu tiên sẽ là ảnh đại diện.
                         </p>
                       </div>
                     </div>
