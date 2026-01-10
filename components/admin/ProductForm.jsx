@@ -1001,11 +1001,7 @@ const ProductForm = forwardRef(function ProductForm(
                               </div>
                             )}
                           </div>
-                          {variant.price && parseFloat(variant.price) > 0 && (
-                            <p className="mt-1 text-xs text-gray-500">
-                              {formatPrice(variant.price)} đ
-                            </p>
-                          )}
+                          
                           {errors[`variant_${index}_price`] && (
                             <p className="mt-1 text-xs text-red-600">{errors[`variant_${index}_price`]}</p>
                           )}
